@@ -1,0 +1,11 @@
+/cmd/fcrypt/fcrypt
+/cmd/secrets/secrets
+/cmd/otpc/otpc
+/cmd/keysrv/keysrv
+
+
+# these are used in development, It's not a security problem if they
+# were to be staged, but would add unnecessary bulk to the repo.
+/cmd/keysrv/keystore.db
+/cmd/keysrv/server.key
+/cmd/keysrv/server.pem
