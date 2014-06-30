@@ -118,7 +118,7 @@ func process(ks *store.KeyStore, cmd command) *response {
 			resp.err = errors.New("export failed")
 		}
 
-		if cmd.data["label"] == self {
+		if cmd.data["label"] == "self" {
 			resp.out = ks.PublicKey
 		} else {
 			rec := ks.Keys[cmd.data["label"]]
