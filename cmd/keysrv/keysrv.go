@@ -107,6 +107,7 @@ func process(ks *store.KeyStore, cmd command) *response {
 
 	switch cmd.op {
 	case "public":
+		log.Printf("public key lookup")
 		if cmd.data["label"] == "" {
 			log.Printf("public key request with no label")
 			resp.err = errors.New("missing label")
@@ -135,8 +136,10 @@ func process(ks *store.KeyStore, cmd command) *response {
 			resp.out, resp.err = vkey.Serialise()
 		}
 	case "upload":
+		log.Printf("upload request")
 		resp = checkUpload(ks, cmd)
 	case "audit":
+		log.Printf("audit request")
 		ok := ks.KeyAudit()
 		if !ok {
 			resp.err = errors.New("audit failure")
@@ -168,6 +171,7 @@ func auditRunner() {
 
 func keystoreDispatch(ks *store.KeyStore, keystoreFile string) {
 	for {
+		t := time.After(10 * time.Minute)
 		select {
 		case cmd, ok := <-dispatch:
 			if !ok {
@@ -176,7 +180,9 @@ func keystoreDispatch(ks *store.KeyStore, keystoreFile string) {
 			log.Println("received command for", cmd.op)
 			res := process(ks, cmd)
 			cmd.cb <- res
-		case <-time.After(10 * time.Minute):
+		case <-t:
+			log.Printf("dumping keystore")
+			t = time.After(10 * time.Minute)
 			out, err := ks.Dump()
 			if err != nil {
 				log.Printf("WARNING: failed to dump keystore: %v", err)
