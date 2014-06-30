@@ -122,7 +122,7 @@ func process(ks *store.KeyStore, cmd command) *response {
 		if cmd.data["label"] == "self" {
 			p := pem.Block{
 				Type:  store.VerifiedKeyType,
-				Bytes: ks.PublicKey,
+				Bytes: ks.ExportKey,
 			}
 			resp.out = pem.EncodeToMemory(&p)
 		} else {
@@ -140,6 +140,7 @@ func process(ks *store.KeyStore, cmd command) *response {
 			}
 			resp.out, resp.err = vkey.Serialise()
 		}
+
 	case "upload":
 		log.Printf("upload request")
 		resp = checkUpload(ks, cmd)
