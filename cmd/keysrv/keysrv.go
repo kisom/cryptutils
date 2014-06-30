@@ -2,6 +2,7 @@
 package main
 
 import (
+	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
@@ -119,7 +120,11 @@ func process(ks *store.KeyStore, cmd command) *response {
 		}
 
 		if cmd.data["label"] == "self" {
-			resp.out = ks.PublicKey
+			p := pem.Block{
+				Type:  store.VerifiedKeyType,
+				Bytes: ks.PublicKey,
+			}
+			resp.out = pem.EncodeToMemory(&p)
 		} else {
 			rec := ks.Keys[cmd.data["label"]]
 			if rec == nil {
