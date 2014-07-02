@@ -459,6 +459,10 @@ func keyList(ks *store.KeyStore, cfg *config) error {
 	updated := time.Unix(ks.Timestamp, 0).Format(timeFormat)
 	fmt.Println("Key store was last updated", updated)
 	fmt.Printf("%d keys stored\n", len(ks.Keys))
+	fmt.Println("Owner public key:")
+	h := sha256.New()
+	h.Write(ks.PublicKey)
+	fmt.Printf("\tFingerprint: %x\n", h.Sum(nil))
 	if len(ks.Keys) > 0 {
 		fmt.Println("Key store:")
 		for k, v := range ks.Keys {
@@ -469,7 +473,7 @@ func keyList(ks *store.KeyStore, cfg *config) error {
 			if !ok {
 				signer = "<unknown>"
 			}
-			h := sha256.New()
+			h = sha256.New()
 			h.Write(v.Keys)
 			fmt.Printf("\t\tLast update: %s\n", ut.Format(timeFormat))
 			fmt.Printf("\t\t  Signed at: %s\n", st.Format(timeFormat))
