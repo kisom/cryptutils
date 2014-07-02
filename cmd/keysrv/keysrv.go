@@ -2,7 +2,7 @@
 package main
 
 import (
-	"encoding/pem"
+	"crypto/sha256"
 	"errors"
 	"flag"
 	"fmt"
@@ -43,6 +43,17 @@ func serverPublic(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp.out)
 }
 
+func getFingerprint(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	label := vars["label"]
+	if label == "" {
+		label = "self"
+	}
+	request := map[string]string{"label": label}
+	var cmd = command{"fingerprint", request, make(chan *response, 1)}
+	sendCommand(w, cmd)
+}
+
 func sendCommand(w http.ResponseWriter, cmd command) {
 	dispatch <- cmd
 	resp, ok := <-cmd.cb
@@ -62,7 +73,7 @@ func getPublic(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	request := map[string]string{"label": vars["label"]}
 
-	var cmd = command{"public", request, make(chan *response, 16)}
+	var cmd = command{"public", request, make(chan *response, 1)}
 	sendCommand(w, cmd)
 }
 
@@ -120,11 +131,7 @@ func process(ks *store.KeyStore, cmd command) *response {
 		}
 
 		if cmd.data["label"] == "self" {
-			p := pem.Block{
-				Type:  store.VerifiedKeyType,
-				Bytes: ks.ExportKey,
-			}
-			resp.out = pem.EncodeToMemory(&p)
+			resp.out = ks.ExportKey[:]
 		} else {
 			rec := ks.Keys[cmd.data["label"]]
 			if rec == nil {
@@ -140,7 +147,34 @@ func process(ks *store.KeyStore, cmd command) *response {
 			}
 			resp.out, resp.err = vkey.Serialise()
 		}
+	case "fingerprint":
+		log.Printf("fingerprint lookup")
+		if cmd.data["label"] == "" {
+			log.Printf("fingerprint request with no label")
+			resp.err = errors.New("missing label")
+		}
+		ok := ks.Has(cmd.data["label"])
+		if !ok {
+			log.Printf("keystore doesn't have key with label %s", cmd.data["label"])
+			resp.err = errors.New("export failed")
+		}
 
+		var pub []byte
+
+		if cmd.data["label"] == "self" {
+			pub = ks.PublicKey[:]
+		} else {
+			rec := ks.Keys[cmd.data["label"]]
+			if rec == nil {
+				log.Printf("keystore lookup failed")
+				resp.err = errors.New("fingerprint failed")
+				break
+			}
+			pub = rec.Keys[:]
+		}
+		h := sha256.New()
+		h.Write(pub)
+		resp.out = []byte(fmt.Sprintf("%s", h.Sum(nil)))
 	case "upload":
 		log.Printf("upload request")
 		resp = checkUpload(ks, cmd)
@@ -275,5 +309,6 @@ func main() {
 	router.HandleFunc("/public/", serverPublic)
 	router.HandleFunc("/public/{label}", getPublic)
 	router.HandleFunc("/upload/{label}", addPublic)
+	router.HandleFunc("/fingerprint/{label}", getFingerprint)
 	log.Fatal(http.ListenAndServeTLS(*address, *certFile, *keyFile, router))
 }
