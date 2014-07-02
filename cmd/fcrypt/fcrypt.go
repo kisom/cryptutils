@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/pem"
 	"errors"
 	"flag"
@@ -468,9 +469,12 @@ func keyList(ks *store.KeyStore, cfg *config) error {
 			if !ok {
 				signer = "<unknown>"
 			}
+			h := sha256.New()
+			h.Write(v.Keys)
 			fmt.Printf("\t\tLast update: %s\n", ut.Format(timeFormat))
 			fmt.Printf("\t\t  Signed at: %s\n", st.Format(timeFormat))
 			fmt.Printf("\t\t  Signed by: %s\n", signer)
+			fmt.Printf("\t\tFingerprint: %x\n", h.Sum(nil))
 		}
 	}
 	return nil
