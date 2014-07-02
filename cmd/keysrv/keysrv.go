@@ -155,7 +155,8 @@ func process(ks *store.KeyStore, cmd command) *response {
 		}
 		ok := ks.Has(cmd.data["label"])
 		if !ok {
-			log.Printf("keystore doesn't have key with label %s", cmd.data["label"])
+			log.Printf("keystore doesn't have key with label %s",
+				cmd.data["label"])
 			resp.err = errors.New("export failed")
 		}
 
@@ -174,7 +175,7 @@ func process(ks *store.KeyStore, cmd command) *response {
 		}
 		h := sha256.New()
 		h.Write(pub)
-		resp.out = []byte(fmt.Sprintf("%s", h.Sum(nil)))
+		resp.out = []byte(fmt.Sprintf("%x", h.Sum(nil)))
 	case "upload":
 		log.Printf("upload request")
 		resp = checkUpload(ks, cmd)
