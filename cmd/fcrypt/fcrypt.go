@@ -411,6 +411,10 @@ func importUntrusted(ks *store.KeyStore, cfg *config) error {
 		fmt.Println("Unrecognised signature.")
 	}
 
+	h := sha256.New()
+	h.Write(vkey.Public)
+	fmt.Printf("Fingerprint: %x\n", h.Sum(nil))
+
 	for {
 		line, err := util.ReadLine("\nAre you sure you want to import this key? (yes or no) ")
 		if err != nil {
