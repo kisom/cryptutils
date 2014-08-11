@@ -17,7 +17,7 @@ import (
 	"github.com/kisom/cryptutils/common/util"
 )
 
-const defaultEditor = "emacs"
+const defaultEditor = "gvim -fn -i NONE"
 
 type int64Slice []int64
 
