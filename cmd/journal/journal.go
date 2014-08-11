@@ -17,7 +17,8 @@ import (
 	"github.com/kisom/cryptutils/common/util"
 )
 
-const defaultEditor = "gvim -fn -i NONE"
+// const defaultEditor = "vim -f -n -i NONE +star"
+const defaultEditor = "mg" // lighter than emacs, faster start up
 
 type int64Slice []int64
 
@@ -209,6 +210,9 @@ func newEntry(title, editor string) ([]byte, error) {
 	args := strings.Split(editor, " ")
 	args = append(args, fileName)
 	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	err = cmd.Run()
 	if err != nil {
@@ -251,6 +255,9 @@ func editEntry(ps *store.SecretStore, cfg *config) error {
 	args := strings.Split(editor, " ")
 	args = append(args, fileName)
 	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	err = cmd.Run()
 	if err != nil {
