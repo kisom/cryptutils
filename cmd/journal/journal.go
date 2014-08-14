@@ -17,8 +17,7 @@ import (
 	"github.com/kisom/cryptutils/common/util"
 )
 
-// const defaultEditor = "vim -f -n -i NONE +star"
-const defaultEditor = "mg" // lighter than emacs, faster start up
+const defaultEditor = "vim -f -n -i NONE +star"
 
 type int64Slice []int64
 
