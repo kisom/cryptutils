@@ -157,6 +157,16 @@ func writeNew(ps *store.SecretStore, cfg *config) error {
 
 	if ps.Has(title) {
 		fmt.Printf("There is already an entry with the title '%s'.\n", title)
+
+		yesOrNo, err := util.ReadLine("Do you want to edit the entry (y/n)? ")
+		if err != nil {
+			return err
+		}
+
+		if yesOrNo = strings.ToLower(yesOrNo); yesOrNo == "y" || yesOrNo == "yes" {
+			return editEntry(ps, cfg)
+		}
+
 		fmt.Println("Please enter a new title (or an empty string to abort).")
 		newTitle, err := util.ReadLine("Title: ")
 		if err != nil {
