@@ -336,7 +336,14 @@ func merge(ps *store.SecretStore, cfg *config) error {
 		return errors.New("failed to open other password store")
 	}
 
-	ps.Merge(otherStore)
+	mergeList := ps.Merge(otherStore)
+	fmt.Printf("%+v\n", mergeList)
+	if len(mergeList) > 0 {
+		sort.Strings(mergeList)
+		for _, label := range mergeList {
+			fmt.Printf("Merged '%s'\n", label)
+		}
+	}
 	return nil
 }
 

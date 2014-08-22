@@ -154,25 +154,34 @@ func (s *SecretStore) UpdateSecret(name string, secret []byte) bool {
 
 // Merge compares the timestamp of the record to the other record;
 // the record that was modified most recently is selected.
-func (r *SecretRecord) Merge(other *SecretRecord) *SecretRecord {
+func (r *SecretRecord) Merge(other *SecretRecord) (*SecretRecord, bool) {
 	if r.Timestamp >= other.Timestamp {
-		return r
+		return r, false
 	}
-	return other
+
+	return other, true
 }
 
 // Merge handles the merging of two password stores. For each record
 // in the other password store, if the entry doesn't exist in the password
 // store it is added. If it does exist, the two records are merged.
-func (s *SecretStore) Merge(other *SecretStore) {
+func (s *SecretStore) Merge(other *SecretStore) []string {
+	var mergeList []string
 	for k, v := range other.Store {
+		var merged bool
 		if r, ok := s.Store[k]; !ok {
 			s.Store[k] = v
+			merged = true
 		} else {
-			s.Store[k] = r.Merge(v)
+			s.Store[k], merged = r.Merge(v)
+		}
+
+		if merged {
+			mergeList = append(mergeList, s.Store[k].Label)
 		}
 	}
 	s.Timestamp = time.Now().Unix()
+	return mergeList
 }
 
 // MarshalSecretStore serialises and encrypts the data store to a byte
