@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -27,11 +28,7 @@ type command struct {
 var commandSet = map[string]command{
 	"show":  {false, 1, showSecret, []string{"label"}},
 	"store": {true, 1, addSecret, []string{"label"}},
-	// "list":  {false, 0, list, nil},
-	// "passwd": {true, 0, chpass, nil},
-	// "remove": {true, 1, remove, []string{"label"}},
-	// "multi":  {true, 0, multi, nil},
-	// "merge":  {true, 1, merge, []string{"other store"}},
+	"qr":    {false, 2, showQR, []string{"label", "filename"}},
 }
 
 func loadStore(path string) *store.SecretStore {
@@ -324,6 +321,40 @@ func parseTwofactorType(t twofactor.Type) int {
 	}
 }
 
+func showQR(ps *store.SecretStore, cfg *config) error {
+	label := cfg.Args[0]
+	if !ps.Has(label) {
+		return errors.New("no token found under label")
+	}
+	filename := cfg.Args[1]
+
+	rec := ps.Store[label]
+
+	otp, label, err := twofactor.FromURL(string(rec.Secret))
+	if err != nil {
+		return err
+	}
+
+	var qr []byte
+
+	switch otp.Type() {
+	case twofactor.OATH_HOTP:
+		hotp := otp.(*twofactor.HOTP)
+		qr, err = hotp.QR(label)
+	case twofactor.OATH_TOTP:
+		totp := otp.(*twofactor.TOTP)
+		qr, err = totp.QR(label)
+	default:
+		err = errors.New("QR codes can only be generated for OATH OTPs")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(filename, qr, 0600)
+}
+
 func showSecret(ps *store.SecretStore, cfg *config) error {
 	label := cfg.Args[0]
 	if !ps.Has(label) {
@@ -365,19 +396,20 @@ func main() {
 	doStore := flag.Bool("s", false, "store a new two-factor token")
 	storePath := flag.String("f", baseFile, "path to password store")
 	otpKind := flag.String("t", "", "OTP type (TOTP, HOTP, GOOGLE)")
+	doQR := flag.Bool("qr", false, "dump QR code for secret")
 	flag.Parse()
 
 	var cfg = &config{
 		Args:    flag.Args(),
 		OTPType: parseOTPKind(*otpKind),
-		//WithMeta:  *withMeta,
-		//Overwrite: *overWrite,
 	}
 
 	var cmd command
 	switch {
 	case *doStore:
 		cmd = commandSet["store"]
+	case *doQR:
+		cmd = commandSet["qr"]
 	default:
 		cmd = commandSet["show"]
 	}
