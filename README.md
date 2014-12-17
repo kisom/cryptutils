@@ -6,6 +6,7 @@ NaCl and Ed25519 keys. It also includes a set of command line tools:
 * fcrypt: file encryption tool
 * secrets: command-line secrets manager
 * otpc: command-line two-factor authentication token manager
+* journal: password-backed journal
 
 
 ### The cryptography
@@ -40,15 +41,16 @@ and, realising that the same data structure lent itself well to
 `password` and `otpc`, a common datastore for secrets. Eventually,
 `passwords` was renamed to `secrets` when I began to use it for
 manipulating the `otpc` store, letting me keep a lot of unnecessary
-functionality out of `otpc`.
+functionality out of `otpc`. At some point, I realised the datastore
+could also be used for storing journal entries, and added a journaling
+front end.
 
 ### Dependencies
 
+* code.google.com/p/go.crypto
 * github.com/agl/ed25519
 * github.com/gokyle/twofactor
-* github.com/gokyle/readpass (which unfortunately requires cgo to
-  build, as I have yet to find a good way to read passwords securely
-  from the command line in pure Go)
+* github.com/gokyle/readpass 
 
 ### License
 

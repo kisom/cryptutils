@@ -197,6 +197,7 @@ func newEntry(title, editor string) ([]byte, error) {
 		return nil, err
 	}
 	fileName := tmp.Name()
+	defer os.Remove(fileName)
 	tmp.Close()
 	date := time.Now().Format(timeFormat)
 	header := fmt.Sprintf("%s\n%s\n\n-----\n", title, date)
@@ -244,6 +245,7 @@ func editEntry(ps *store.SecretStore, cfg *config) error {
 	}
 	fileName := tmp.Name()
 	tmp.Close()
+	defer os.Remove(fileName)
 	err = ioutil.WriteFile(fileName, ps.Store[title].Secret, 0600)
 
 	defer func() {
