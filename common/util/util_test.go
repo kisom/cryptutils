@@ -55,7 +55,7 @@ func TestZero(t *testing.T) {
 
 	for i := range randData {
 		if randData[i] != 0 {
-			t.Fatalf("Element at %d is not zeroised.")
+			t.Fatalf("Element at %d is not zeroised.", i)
 		}
 	}
 }

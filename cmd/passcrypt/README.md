@@ -2,16 +2,31 @@
 ### password-based file encryption tool
 
 This is a small utility for encrypting files with a passphrase. The
-files are compressed with gzip and stored in an archive.
+files are compressed with gzip and stored in an archive. Permissions
+will be preserved; ownership isn't.
 
-Encrypting several files:
+
+### Usage
+
+```
+passcrypt [-a -u -v] [-f packfile] [-o outdir] file
+```
+
+* `-a`: ASCII-armour (PEM-encode) an archive
+* `-f` (default "passcrypt.out"): specify the output archive file
+* `-o` (default "."): specify the output directory
+* `-u`: unpack an archive
+* `-v`: verbose mode
+
+
+### Examples
 
 ```
 passcrypt foo bar/baz/quux
 ```
 
-This will encrypt the files into an encrypted file; by default, this
-is `passcrypt.out`; the output file can be specified with `-f`. An
+This will pack the files into an encrypted archive file; by default,
+this is `passcrypt.enc`; the output file can be specified with `-f`. An
 armoured file can be produced by passing the `-a` flag:
 
 ```
@@ -41,5 +56,74 @@ restored to their original path, with the current working directory
 replacing the root. The output directory can be selected with `-o`.
 
 ```
-passcrypt -o tmp passcrypt.out
+passcrypt -o tmp passcrypt.enc
 ```
+
+Verbose mode lists files as they are being packed or unpacked. For
+example, while packing:
+
+```
+$ passcrypt -a -v common
+Password: 
+Pack directory common
+Pack directory common/public
+Pack file common/public/crypto.go
+Pack file common/public/crypto_test.go
+Pack directory common/secret
+Pack file common/secret/.crypto.go.swp
+Pack file common/secret/crypto.go
+Pack directory common/store
+Pack file common/store/doc.go
+Pack file common/store/keystore.go
+Pack file common/store/secretstore.go
+Pack directory common/util
+Pack file common/util/util.go
+Pack file common/util/util_test.go
+```
+
+Alternatively, while unpacking:
+
+```
+$ passcrypt -v -u -o tmp passcrypt.out 
+Password: 
+Unpack common
+Directory: common
+Unpack common/public
+Directory: public
+Unpack common/public/crypto.go
+Unpack common/public/crypto_test.go
+Unpack common/secret
+Directory: secret
+Unpack common/secret/.crypto.go.swp
+Unpack common/secret/crypto.go
+Unpack common/store
+Directory: common/store
+Unpack common/store/doc.go
+Unpack common/store/keystore.go
+Unpack common/store/secretstore.go
+Unpack common/util
+Directory: common/util
+Unpack common/util/util.go
+Unpack common/util/util_test.go
+```
+
+
+### Cryptographic details
+
+This encrypts files using the cryptutils standard cryptographic
+library:
+
+* Keys are derived from Scrypt using a 32-byte salt, N=32768,
+  r=8, p=4.
+* The salt is randomly generated and prepended to the ciphertext.
+* The resulting gzip-compressed tar file is encrypted using NaCl's
+  secretbox, using the derived key for encryption.
+* The NaCl nonce is randomly generated.
+
+
+### License
+
+`passcrypt` is licensed under the ISC license. See the LICENSE file
+in the project root for more details.
+
+

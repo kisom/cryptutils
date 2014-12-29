@@ -166,7 +166,7 @@ func unpackFiles(in []byte, top string) error {
 			fmt.Println("Unpack", file.Path)
 		}
 		if os.FileMode(file.Mode).IsDir() {
-			fmt.Println("Directory")
+			fmt.Println("Directory:", file.Path)
 			err = os.MkdirAll(filepath.Join(top, file.Path),
 				os.FileMode(file.Mode))
 			if err != nil {
@@ -197,7 +197,7 @@ func unpackFiles(in []byte, top string) error {
 func main() {
 	flArmour := flag.Bool("a", false, "armour output")
 	flOutDir := flag.String("o", ".", "output directory")
-	flOutfile := flag.String("f", "passcrypt.out", "pack file")
+	flOutfile := flag.String("f", "passcrypt.enc", "pack file")
 	flUnpack := flag.Bool("u", false, "unpack the archive")
 	flag.BoolVar(&verbose, "v", false, "verbose mode")
 	flag.Parse()
