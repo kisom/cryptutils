@@ -1,3 +1,5 @@
+// +build experimental
+
 // keysrv is a keyserver storing verified keys.
 package main
 
@@ -200,7 +202,7 @@ func auditRunner() {
 		if !ok {
 			log.Fatal("FATAL: failed to run audit")
 		} else if resp.err != nil {
-			log.Fatalf("FATAL: audit failed", resp.err)
+			log.Fatalf("FATAL: audit failed (%v)", resp.err)
 		} else if resp.out != nil {
 			log.Printf("Audit complete: %s", resp.out)
 		} else {
@@ -299,7 +301,7 @@ func main() {
 
 	keystore := loadStore(*keystoreFile)
 	if keystore == nil {
-		log.Fatal("failed to open keystore file %v", *keystoreFile)
+		log.Fatalf("failed to open keystore file %v", *keystoreFile)
 	}
 	if !keystore.KeyAudit() {
 		log.Fatal("keystore failed audit")
