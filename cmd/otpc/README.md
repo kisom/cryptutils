@@ -38,6 +38,22 @@ Timestamp: 1403491135 (2014-06-22 19:38 PDT)
         confirmation: 623972
 ```
 
+
+### QR codes
+
+The `otpc` tool can be used to dump a QR code of the secret suitable
+for use backing up the OTP tokens to Google Authenticator or similar
+apps. The `-qr` flag causes `otpc` to dump a PNG containing the QR
+code:
+
+```
+ $ otpc -qr test-service test-service.png
+Two-factor store passphrase> 
+$ ls *.png
+test-service.png
+```
+
+
 ### Compatibility
 
 There is a prior tool that this is inspired by, also called
