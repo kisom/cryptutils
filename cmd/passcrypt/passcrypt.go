@@ -202,17 +202,18 @@ func main() {
 	flArmour := flag.Bool("a", false, "armour output")
 	flOutDir := flag.String("o", ".", "output directory")
 	flOutfile := flag.String("f", "passcrypt.enc", "pack file")
+	flShowManifest := flag.Bool("l", false, "list the files in the archive")
 	flUnpack := flag.Bool("u", false, "unpack the archive")
 	flag.BoolVar(&verbose, "v", false, "verbose mode")
-	doVersion := flag.Bool("V", false, "display version and exit")
+	flVersion := flag.Bool("V", false, "display version and exit")
 	flag.Parse()
 
-	if *doVersion {
+	if *flVersion {
 		fmt.Println("passcrypt version", util.VersionString())
 		os.Exit(0)
 	}
 
-	if *flUnpack {
+	if *flUnpack || *flShowManifest {
 		if flag.NArg() != 1 {
 			util.Errorf("Only one file may be unpacked at a time.\n")
 			os.Exit(1)
@@ -256,11 +257,31 @@ func main() {
 			util.Errorf("Decryption failed.\n")
 			os.Exit(1)
 		}
+		defer util.Zero(in)
 
-		err = unpackFiles(in, *flOutDir)
-		if err != nil {
-			util.Errorf("%v\n", err)
-			os.Exit(1)
+		if *flUnpack {
+			err = unpackFiles(in, *flOutDir)
+			if err != nil {
+				util.Errorf("%v\n", err)
+				os.Exit(1)
+			}
+		} else if *flShowManifest {
+			var files []File
+			_, err := asn1.Unmarshal(in, &files)
+			if err != nil {
+				util.Errorf("%v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Println("Manifest for", flag.Arg(0))
+			fmt.Printf("\n")
+			for _, file := range files {
+				fmt.Printf("\t%s", file.Path)
+				if os.FileMode(file.Mode).IsDir() {
+					fmt.Printf("/")
+				}
+				fmt.Printf("\n")
+			}
 		}
 		return
 	}
