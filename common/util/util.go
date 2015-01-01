@@ -20,7 +20,7 @@ var Version = struct {
 	Minor int
 	Patch int
 	Label string
-}{1, 0, 2, ""}
+}{1, 0, 3, ""}
 
 // VersionString returns a formatted semver structure from Version.
 func VersionString() string {
