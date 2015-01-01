@@ -106,6 +106,10 @@ func packFiles(paths []string) ([]byte, error) {
 
 	for _, walkPath := range paths {
 		walker := func(path string, info os.FileInfo, err error) error {
+			if info == nil {
+				return fmt.Errorf("passcrypt: %s could not be read", path)
+			}
+
 			if info.Mode().IsDir() {
 				if verbose {
 					fmt.Println("Pack directory", path)
@@ -200,7 +204,13 @@ func main() {
 	flOutfile := flag.String("f", "passcrypt.enc", "pack file")
 	flUnpack := flag.Bool("u", false, "unpack the archive")
 	flag.BoolVar(&verbose, "v", false, "verbose mode")
+	doVersion := flag.Bool("V", false, "display version and exit")
 	flag.Parse()
+
+	if *doVersion {
+		fmt.Println("passcrypt version", util.VersionString())
+		os.Exit(0)
+	}
 
 	if *flUnpack {
 		if flag.NArg() != 1 {

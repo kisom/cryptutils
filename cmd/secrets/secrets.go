@@ -393,7 +393,13 @@ func main() {
 	doStore := flag.Bool("s", false, "store password")
 	clipExport := flag.Bool("x", false, "dump secrets for clipboard")
 	overWrite := flag.Bool("w", false, "overwrite existing secrets")
+	doVersion := flag.Bool("V", false, "display version and exit")
 	flag.Parse()
+
+	if *doVersion {
+		fmt.Println("secrets version", util.VersionString())
+		os.Exit(0)
+	}
 
 	var cfg = &config{
 		Args:      flag.Args(),

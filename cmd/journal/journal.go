@@ -293,7 +293,13 @@ func main() {
 	storePath := flag.String("f", baseFile, "path to journal")
 	doList := flag.Bool("l", false, "list entries")
 	doWrite := flag.Bool("w", false, "write new entry")
+	doVersion := flag.Bool("V", false, "display version and exit")
 	flag.Parse()
+
+	if *doVersion {
+		fmt.Println("journal version", util.VersionString())
+		os.Exit(0)
+	}
 
 	var cfg = &config{
 		Args:   flag.Args(),

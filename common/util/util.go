@@ -13,8 +13,20 @@ import (
 	"github.com/gokyle/readpass"
 )
 
-// Version contains the current version of the cryptutils system.
-const Version = 1
+// Version contains the current version of the cryptutils system. See
+// semver.org for a description of this format.
+var Version = struct {
+	Major int
+	Minor int
+	Patch int
+	Label string
+}{1, 0, 2, ""}
+
+// VersionString returns a formatted semver structure from Version.
+func VersionString() string {
+	return fmt.Sprintf("%d-%d-%d%s", Version.Major,
+		Version.Minor, Version.Patch, Version.Label)
+}
 
 // A PassPrompt is a function that takes a string to display to the
 // user, and returns a byte slice containing the user's input if no

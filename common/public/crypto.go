@@ -92,7 +92,7 @@ func ExportPrivate(priv *PrivateKey, passphrase []byte) ([]byte, error) {
 	block := pem.Block{
 		Type: PrivateType,
 		Headers: map[string]string{
-			"Version": fmt.Sprintf("%d", util.Version),
+			"Version": fmt.Sprintf("%s", util.VersionString()),
 		},
 		Bytes: locked,
 	}

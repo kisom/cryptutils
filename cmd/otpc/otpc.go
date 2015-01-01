@@ -397,7 +397,13 @@ func main() {
 	storePath := flag.String("f", baseFile, "path to password store")
 	otpKind := flag.String("t", "", "OTP type (TOTP, HOTP, GOOGLE)")
 	doQR := flag.Bool("qr", false, "dump QR code for secret")
+	doVersion := flag.Bool("V", false, "display version and exit")
 	flag.Parse()
+
+	if *doVersion {
+		fmt.Println("otpc version", util.VersionString())
+		os.Exit(0)
+	}
 
 	var cfg = &config{
 		Args:    flag.Args(),
