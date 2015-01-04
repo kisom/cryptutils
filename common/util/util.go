@@ -20,11 +20,11 @@ var Version = struct {
 	Minor int
 	Patch int
 	Label string
-}{1, 0, 3, ""}
+}{1, 0, 4, ""}
 
 // VersionString returns a formatted semver structure from Version.
 func VersionString() string {
-	return fmt.Sprintf("%d-%d-%d%s", Version.Major,
+	return fmt.Sprintf("%d.%d.%d%s", Version.Major,
 		Version.Minor, Version.Patch, Version.Label)
 }
 

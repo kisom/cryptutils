@@ -1,0 +1,14 @@
+1.0.4 :: kyle :: 2014-01-03
+===========================
+Fix version display from 1-0-3 to 1.0.3.
+
+1.0.3 :: kyle :: 2014-01-01
+===========================
+Add support for listing files in an archive.
+
+1.0.2 :: kyle :: 2014-12-31
+===========================
+This is the first the version that is actually semantically-versioned.
+The choice of starting the versioning with a release number of 2 stems
+from the fact that there was a first version announced; this was followed
+a minor update with some bug fixes and de-typo'ing.
