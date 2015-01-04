@@ -33,15 +33,28 @@ func VersionString() string {
 // error occurred.
 var PassPrompt = readpass.PasswordPromptBytes
 
+var prng = rand.Reader
+
 // RandBytes is a wrapper for retrieving a buffer of the requested
 // size, filled with random data. On failure, it returns nil.
 func RandBytes(size int) []byte {
 	p := make([]byte, size)
-	_, err := io.ReadFull(rand.Reader, p)
+	_, err := io.ReadFull(prng, p)
 	if err != nil {
 		p = nil
 	}
 	return p
+}
+
+// PRNG returns the current PRNG being used by the package.
+func PRNG() io.Reader {
+	return prng
+}
+
+// SetPRNG is used to change the PRNG. This should only be used in
+// testing to validate PRNG failures.
+func SetPRNG(r io.Reader) {
+	prng = r
 }
 
 // Zero wipes out a byte slice. This isn't a bulletproof option, as

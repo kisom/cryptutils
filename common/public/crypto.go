@@ -4,7 +4,6 @@ package public
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -219,14 +218,15 @@ func UnmarshalPublic(in []byte) (*PublicKey, error) {
 func GenerateKey() (*PrivateKey, error) {
 	var priv PrivateKey
 	var err error
+	prng := util.PRNG()
 
 	priv.PublicKey = &PublicKey{}
-	priv.E, priv.D, err = box.GenerateKey(rand.Reader)
+	priv.E, priv.D, err = box.GenerateKey(prng)
 	if err != nil {
 		return nil, err
 	}
 
-	priv.V, priv.S, err = ed25519.GenerateKey(rand.Reader)
+	priv.V, priv.S, err = ed25519.GenerateKey(prng)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +241,8 @@ func Encrypt(pub *PublicKey, message []byte) (out []byte, ok bool) {
 		return nil, false
 	}
 
-	epub, epriv, err := box.GenerateKey(rand.Reader)
+	prng := util.PRNG()
+	epub, epriv, err := box.GenerateKey(prng)
 	if err != nil {
 		return nil, false
 	}
@@ -402,4 +403,13 @@ func UnlockKey(locked, passphrase []byte) (*PrivateKey, bool) {
 		return nil, false
 	}
 	return priv, true
+}
+
+// KeyExchange performs an ECDH key exchange with the private and
+// public key pairs.
+func KeyExchange(priv *PrivateKey, peer *PublicKey) []byte {
+	var shared [32]byte
+
+	box.Precompute(&shared, peer.E, priv.D)
+	return shared[:]
 }

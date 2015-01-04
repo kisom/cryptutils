@@ -17,7 +17,7 @@ import (
 // KeySize contains the size (in bytes) of a NaCl secretbox key.
 const (
 	KeySize   = 32
-	saltSize  = 32
+	SaltSize  = 32
 	nonceSize = 24
 )
 
@@ -83,8 +83,8 @@ func DecryptFile(filename string, passphrase []byte) (data []byte, err error) {
 		return
 	}
 
-	salt := data[:saltSize]
-	data = data[saltSize:]
+	salt := data[:SaltSize]
+	data = data[SaltSize:]
 
 	key := DeriveKey(passphrase, salt)
 	if key == nil {
@@ -101,7 +101,7 @@ func DecryptFile(filename string, passphrase []byte) (data []byte, err error) {
 
 // EncryptFile securely stores the encoded blob under the filename.
 func EncryptFile(filename string, passphrase, encoded []byte) (err error) {
-	salt := util.RandBytes(saltSize)
+	salt := util.RandBytes(SaltSize)
 	if salt == nil {
 		err = errors.New("password: failed to generate new salt")
 		return
