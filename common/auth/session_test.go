@@ -1,12 +1,15 @@
 package auth
 
 import (
+	"bytes"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"testing"
 
 	"github.com/kisom/cryptutils/common/public"
+	"github.com/kisom/cryptutils/common/util"
 )
 
 var (
@@ -14,6 +17,7 @@ var (
 	peer        []byte
 	sessionPub  []byte
 	sessionAuth *Authenticator
+	testSession *Session
 )
 
 func testCreateOTP(t *testing.T) string {
@@ -88,5 +92,142 @@ func TestSessionValidationTypeErrors(t *testing.T) {
 
 	if _, err := ValidateSession(sessionAuth, "deadbeef"); err == nil {
 		t.Fatal("auth: expect session validation failure with short OTP")
+	}
+}
+
+var priv []byte
+
+// TestSessionKeying validates setting up a session.
+func TestSessionKeying(t *testing.T) {
+	var err error
+
+	priv, err = public.MarshalPrivate(peerPrivate)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	sessionAuth, sessionPub, err = NewSession(peer)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	session, ok := KeySession(priv, sessionPub)
+	if !ok {
+		t.Fatal("auth: failed to key session")
+	}
+
+	next, err := hex.DecodeString(sessionAuth.Last)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if _, err := ValidateSession(sessionAuth, session.OTP(next)); err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	testSession = session
+}
+
+// TestSessionKeyingFailures validates the error handling in the session key exchange.
+func TestSessionKeyingFailures(t *testing.T) {
+	bad := make([]byte, 16)
+	_, ok := KeySession(bad, sessionPub)
+	if ok {
+		t.Fatal("auth: expect session key exchange failure with bad private key")
+	}
+
+	_, ok = KeySession(priv, bad)
+	if ok {
+		t.Fatal("auth: expect session key exchange failure with bad public key")
+	}
+}
+
+// TestSessionZero validates session zeroing.
+func TestSessionZero(t *testing.T) {
+	s, ok := KeySession(priv, sessionPub)
+	if !ok {
+		t.Fatalf("auth: failed to key session")
+	}
+
+	s.Zero()
+	for i := 0; i < len(s.shared); i++ {
+		if s.shared[i] != 0 {
+			t.Fatalf("auth: failed to zeroise session")
+		}
+	}
+}
+
+// TestNewSessionFailures validates some of the failure modes for NewSession.
+func TestNewSessionFailures(t *testing.T) {
+	r := util.PRNG()
+	b := &bytes.Buffer{}
+	util.SetPRNG(b)
+
+	if _, _, err := NewSession(peer); err == nil {
+		util.SetPRNG(r)
+		t.Fatal("auth: expected new session failure with PRNG failure")
+	}
+
+	tmp := make([]byte, sessionLength)
+	b.Write(tmp)
+
+	if _, _, err := NewSession(peer); err == nil {
+		util.SetPRNG(r)
+		t.Fatal("auth: expected new session failure with PRNG failure")
+	}
+	util.SetPRNG(r)
+
+	tmp = make([]byte, 16)
+	if _, _, err := NewSession(tmp); err == nil {
+		t.Fatal("auth: expected new session failure with invalid public key")
+	}
+
+}
+
+// TestSessionValidationFailures validates some of the failure modes
+// for validating sessions.
+func TestSessionValidationFailures(t *testing.T) {
+	next, err := hex.DecodeString(sessionAuth.Last)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	otp := testSession.OTP(next)
+
+	last := sessionAuth.Last
+	sessionAuth.Last = "Z" + otp[1:]
+	if _, err = ValidateSession(sessionAuth, otp); err == nil {
+		t.Fatalf("auth: expect session validation failure with invalid last value")
+	}
+	sessionAuth.Last = last
+
+	var tmpOTP string
+	if otp[0] == 'A' {
+		tmpOTP = "B" + otp[1:]
+	} else {
+		tmpOTP = "A" + otp[1:]
+	}
+
+	if _, err = ValidateSession(sessionAuth, tmpOTP); err == nil {
+		t.Fatalf("auth: expect session validation failure with invalid last value")
+	}
+
+	offset := 3*sessionLength + 1
+	if otp[sessionLength+1] == 'A' {
+		tmpOTP = otp[:offset] + "B" + otp[offset+1:]
+	} else {
+		tmpOTP = otp[:offset] + "A" + otp[offset+1:]
+	}
+
+	if _, err = ValidateSession(sessionAuth, tmpOTP); err == nil {
+		t.Fatal("auth: expect session validation failure with invalid HMAC")
+	}
+
+	b := &bytes.Buffer{}
+	util.SetPRNG(b)
+	_, err = ValidateSession(sessionAuth, otp)
+	util.SetPRNG(rand.Reader)
+	if err == nil {
+		t.Fatal("auth: expect session validation failure with PRNG failure")
 	}
 }

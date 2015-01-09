@@ -27,6 +27,15 @@ var (
 	ErrInvalidOTP = errors.New("sync: invalid OTP")
 )
 
+// Validators contains a mapping of authenticator types to validation
+// functions.
+var Validators = map[string]func(*Authenticator, string) (bool, error){
+	TypeYubiKey:  ValidateYubiKey,
+	TypeTOTP:     ValidateTOTP,
+	TypeSession:  ValidateSession,
+	TypePassword: ValidatePassword,
+}
+
 // Validate takes an Authenticator and an OTP, and checks whether
 // the OTP is valid. It returns a boolean value indicating whether
 // the Authenticator needs to be validated (i.e., if it contains
@@ -36,14 +45,10 @@ func Validate(auth *Authenticator, otp string) (needsUpdate bool, err error) {
 		return false, ErrInvalidAuthenticator
 	}
 
-	switch auth.Type {
-	case TypeYubiKey:
-		return ValidateYubiKey(auth, otp)
-	case TypeTOTP:
-		return ValidateTOTP(auth, otp)
-	case TypeSession:
-		return ValidateSession(auth, otp)
-	default:
+	validator, ok := Validators[auth.Type]
+	if !ok {
 		return false, ErrInvalidAuthenticator
 	}
+
+	return validator(auth, otp)
 }

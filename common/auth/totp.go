@@ -233,15 +233,11 @@ func ImportGoogleTOTP(key []byte) (*Authenticator, error) {
 		Provider: TOTPProvider,
 	}
 
-	initial, err := totp.generateOTP()
-	if err != nil {
-		return nil, err
-	}
-
-	secret, err := totp.Bytes()
-	if err != nil {
-		return nil, err
-	}
+	// This won't fail, as the only failure mode is an invalid
+	// hash. SHA1 is hardcoded for Google Authenticator tokens,
+	// and is supported.
+	initial, _ := totp.generateOTP()
+	secret, _ := totp.Bytes()
 
 	auth := &Authenticator{
 		Type:   TypeTOTP,

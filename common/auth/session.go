@@ -67,14 +67,12 @@ func NewSession(pub []byte) (*Authenticator, []byte, error) {
 	}
 
 	ephemeral, err := public.GenerateKey()
-	if err != nil {
-		return nil, nil, err
+	if err != nil || !ephemeral.Valid() {
+		return nil, nil, errors.New("auth: failed to set up session key")
 	}
 
-	ephemeralPublic, err := public.MarshalPublic(ephemeral.PublicKey)
-	if err != nil {
-		return nil, nil, err
-	}
+	// Validated that the key was correct previously.
+	ephemeralPublic, _ := public.MarshalPublic(ephemeral.PublicKey)
 
 	peer, err := public.UnmarshalPublic(pub)
 	if err != nil {

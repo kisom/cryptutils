@@ -255,3 +255,17 @@ func TestTOTPSanityChecks(t *testing.T) {
 		t.Fatal("auth: should fail to validate reused TOTP")
 	}
 }
+
+// TestTOTPQRFailure validates that the QR encoding will fail if the
+// label is too large.
+func TestTOTPQRFailure(t *testing.T) {
+	label := make([]byte, 8192)
+	for i := 0; i < 8192; i++ {
+		label[i] = 'A'
+	}
+
+	_, err := ExportUserTOTP(totpAuth, string(label))
+	if err == nil {
+		t.Fatalf("auth: expected failure to encode QR image with label=%d bytes", len(label))
+	}
+}
