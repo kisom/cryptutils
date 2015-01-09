@@ -174,7 +174,7 @@ func (dec *Decoder) Decode(v interface{}) error {
 	var t uint8
 	var l int32
 
-	if len(buf) < 6 {
+	if len(buf) < 5 {
 		return errors.New("tlv: invalid TLV-encoded data")
 	}
 
@@ -182,6 +182,10 @@ func (dec *Decoder) Decode(v interface{}) error {
 	l = int32(binary.BigEndian.Uint32(buf[1:5]))
 	if l > int32(len(buf[5:])) {
 		return errors.New("tlv: invalid data length")
+	}
+
+	if t == TagBytes && l == 0 {
+		return nil
 	}
 
 	if v == nil {

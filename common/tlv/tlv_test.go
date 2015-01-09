@@ -243,7 +243,7 @@ func TestDecodeFails(t *testing.T) {
 		t.Fatalf("tlv: expect 7 bytes remaining in decoder, have %d", dec.Length())
 	}
 
-	dec2 := NewDecoder(dec.buf[:5])
+	dec2 := NewDecoder(dec.buf[:4])
 	if err := dec2.Decode(&u16); err == nil {
 		t.Fatal("tlv: expect decode to fail with too few bytes")
 	}
@@ -303,5 +303,25 @@ func TestFixedEncoder(t *testing.T) {
 	if enc.Length() != expLen {
 		t.Fatalf("tlv: expected length of fixed encoder to be %d, but it is %d",
 			expLen, enc.Length())
+	}
+}
+
+func TestZeroLengthBuffer(t *testing.T) {
+	enc := &Encoder{}
+	var bs []byte
+
+	err := enc.Encode(bs)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	dec := NewDecoder(enc.Bytes())
+	err = dec.Decode(&bs)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if len(bs) != 0 {
+		t.Fatalf("tlv: should have read a zero-length buffer")
 	}
 }
