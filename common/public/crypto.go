@@ -79,10 +79,6 @@ func MarshalPrivate(priv *PrivateKey) ([]byte, error) {
 // ExportPrivate PEM-encodes the locked private key. The private key is secured
 // with the passphrase using LockKey.
 func ExportPrivate(priv *PrivateKey, passphrase []byte) ([]byte, error) {
-	if !priv.Valid() {
-		return nil, ErrCorruptPrivateKey
-	}
-
 	locked, ok := LockKey(priv, passphrase)
 	if !ok {
 		return nil, ErrCorruptPrivateKey
@@ -135,25 +131,10 @@ func UnmarshalPrivate(in []byte) (*PrivateKey, error) {
 	}
 	buf := bytes.NewBuffer(in)
 
-	_, err := buf.Read(priv.D[:])
-	if err != nil {
-		return nil, ErrCorruptPrivateKey
-	}
-
-	_, err = buf.Read(priv.S[:])
-	if err != nil {
-		return nil, ErrCorruptPrivateKey
-	}
-
-	_, err = buf.Read(priv.E[:])
-	if err != nil {
-		return nil, ErrCorruptPrivateKey
-	}
-
-	_, err = buf.Read(priv.V[:])
-	if err != nil {
-		return nil, ErrCorruptPrivateKey
-	}
+	buf.Read(priv.D[:])
+	buf.Read(priv.S[:])
+	buf.Read(priv.E[:])
+	buf.Read(priv.V[:])
 	return &priv, nil
 }
 
@@ -201,15 +182,8 @@ func UnmarshalPublic(in []byte) (*PublicKey, error) {
 	}
 
 	buf := bytes.NewBuffer(in)
-	_, err := buf.Read(pub.E[:])
-	if err != nil {
-		return nil, ErrCorruptPublicKey
-	}
-
-	_, err = buf.Read(pub.V[:])
-	if err != nil {
-		return nil, ErrCorruptPublicKey
-	}
+	buf.Read(pub.E[:])
+	buf.Read(pub.V[:])
 	return &pub, nil
 }
 
