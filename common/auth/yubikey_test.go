@@ -93,7 +93,16 @@ func TestParseYubiConfig(t *testing.T) {
 		t.Fatalf("auth: expected '%x', have '%x'", config.Bytes(), yubiAuth.Secret)
 	}
 
-	if _, err = ParseYubiKeyConfig(yubiAuth.Secret[:16]); err == nil {
+	for i := 0; i < len(yubiAuth.Secret)-1; i++ {
+		if _, err = ParseYubiKeyConfig(yubiAuth.Secret[:i]); err == nil {
+			t.Fatal("auth: expect failure parsing YubiKeyConfig with bad packed config")
+		}
+	}
+
+	buf := make([]byte, len(yubiAuth.Secret))
+	copy(buf, yubiAuth.Secret)
+	buf[4] = yubikey.KeySize - 1
+	if _, err = ParseYubiKeyConfig(buf); err == nil {
 		t.Fatal("auth: expect failure parsing YubiKeyConfig with bad packed config")
 	}
 }

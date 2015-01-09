@@ -10,7 +10,6 @@ import (
 	"crypto/sha1"
 	"encoding/base32"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"hash"
@@ -19,6 +18,7 @@ import (
 
 	"code.google.com/p/rsc/qr"
 
+	"github.com/kisom/cryptutils/common/tlv"
 	"github.com/kisom/cryptutils/common/util"
 )
 
@@ -110,14 +110,59 @@ func (config *TOTPConfig) ExportQR(label string) ([]byte, error) {
 
 // Bytes exports the TOTP configuration as a byte slice.
 func (config *TOTPConfig) Bytes() ([]byte, error) {
-	return json.Marshal(config)
+	enc := &tlv.Encoder{}
+	enc.Encode(config.Key)
+	enc.Encode(config.Start)
+	enc.Encode(config.Step)
+	enc.Encode(int32(config.Size))
+	enc.Encode(int8(config.Algo))
+	enc.Encode([]byte(config.Provider))
+	return enc.Bytes(), nil
 }
+
+var errInvalidTOTPConfig = errors.New("auth: invalid TOTP configuration")
 
 // ParseTOTPConfig parses a serialised TOTP configuration.
 func ParseTOTPConfig(in []byte) (*TOTPConfig, error) {
+	var size int32
+	var algo int8
+	var provider []byte
+
 	var config = new(TOTPConfig)
-	err := json.Unmarshal(in, config)
-	return config, err
+	dec := tlv.NewDecoder(in)
+	err := dec.Decode(&config.Key)
+	if err != nil {
+		return nil, errInvalidTOTPConfig
+	}
+
+	err = dec.Decode(&config.Start)
+	if err != nil {
+		return nil, errInvalidTOTPConfig
+	}
+
+	err = dec.Decode(&config.Step)
+	if err != nil {
+		return nil, errInvalidTOTPConfig
+	}
+
+	err = dec.Decode(&size)
+	if err != nil {
+		return nil, errInvalidTOTPConfig
+	}
+	config.Size = int(size)
+
+	err = dec.Decode(&algo)
+	if err != nil {
+		return nil, errInvalidTOTPConfig
+	}
+	config.Algo = crypto.Hash(algo)
+
+	err = dec.Decode(&provider)
+	if err != nil {
+		return nil, errInvalidTOTPConfig
+	}
+	config.Provider = string(provider)
+	return config, nil
 }
 
 // UserTOTP contains the data a user needs to import the TOTP token in

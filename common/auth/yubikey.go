@@ -2,10 +2,10 @@ package auth
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 
 	"github.com/conformal/yubikey"
+	"github.com/kisom/cryptutils/common/tlv"
 	"github.com/kisom/cryptutils/common/util"
 )
 
@@ -31,34 +31,36 @@ type YubiKeyConfig struct {
 
 // Bytes returns a byte slice representation of the YubiKeyConfig.
 func (config *YubiKeyConfig) Bytes() []byte {
-	var buf = &bytes.Buffer{}
-	buf.Write(config.Key)
-
-	var counter [4]byte
-	binary.BigEndian.PutUint32(counter[:], config.Counter)
-	buf.Write(counter[:])
-	buf.Write(config.Public)
-	return buf.Bytes()
+	enc := &tlv.Encoder{}
+	enc.Encode(config.Key)
+	enc.Encode(config.Counter)
+	enc.Encode(config.Public)
+	return enc.Bytes()
 }
+
+var errInvalidYKConfig = errors.New("sync: invalid packed YubiKey config")
 
 // ParseYubiKeyConfig attempts to parse a YubiKeyConfig from a
 // byte slice.
 func ParseYubiKeyConfig(in []byte) (*YubiKeyConfig, error) {
-	if len(in) < (yubikey.KeySize + 2) {
-		return nil, errors.New("sync: invalid packed YubiKey config")
+	config := &YubiKeyConfig{}
+	dec := tlv.NewDecoder(in)
+	err := dec.Decode(&config.Key)
+	if err != nil {
+		return nil, errInvalidYKConfig
+	} else if len(config.Key) != yubikey.KeySize {
+		return nil, errInvalidYKConfig
 	}
 
-	config := &YubiKeyConfig{
-		Key: in[:yubikey.KeySize],
+	err = dec.Decode(&config.Counter)
+	if err != nil {
+		return nil, errInvalidYKConfig
 	}
 
-	config.Counter = (uint32(in[yubikey.KeySize])) << 24
-	config.Counter += (uint32(in[yubikey.KeySize+1])) << 16
-	config.Counter += (uint32(in[yubikey.KeySize+2])) << 8
-	config.Counter += (uint32(in[yubikey.KeySize+3]))
-
-	config.Public = make([]byte, len(in)-(yubikey.KeySize+4))
-	copy(config.Public, in[yubikey.KeySize+4:])
+	err = dec.Decode(&config.Public)
+	if err != nil {
+		return nil, errInvalidYKConfig
+	}
 
 	return config, nil
 }

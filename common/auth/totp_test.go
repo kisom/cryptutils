@@ -254,6 +254,14 @@ func TestTOTPSanityChecks(t *testing.T) {
 	if _, err := ValidateTOTP(auth, auth.Last); err == nil {
 		t.Fatal("auth: should fail to validate reused TOTP")
 	}
+
+	last := auth.Last
+	auth.Secret = auth.Secret[1:]
+	auth.Last = ""
+
+	if _, err = ValidateTOTP(auth, last); err == nil {
+		t.Fatal("auth: should fail to validate with invalid TOTP")
+	}
 }
 
 // TestTOTPQRFailure validates that the QR encoding will fail if the
@@ -267,5 +275,45 @@ func TestTOTPQRFailure(t *testing.T) {
 	_, err := ExportUserTOTP(totpAuth, string(label))
 	if err == nil {
 		t.Fatalf("auth: expected failure to encode QR image with label=%d bytes", len(label))
+	}
+}
+
+// TestTOTPParseFailures validates that the parser fails with invalid data.
+func TestTOTPParseFailures(t *testing.T) {
+	buf := make([]byte, len(totpAuth.Secret))
+	copy(buf, totpAuth.Secret)
+
+	for i := 0; i < len(buf)-1; i++ {
+		_, err := ParseTOTPConfig(buf[:i])
+		if err == nil {
+			t.Fatal("auth: expect failure to parse TOTP config with invalid packed config")
+		}
+	}
+}
+
+// TestTOTPInvalidHashValidation validates failure of validation
+// with an unsupported hash algo.
+func TestTOTPInvalidHashValidation(t *testing.T) {
+	auth, err := NewGoogleTOTP()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	last := auth.Last
+	auth.Last = ""
+
+	config, err := ParseTOTPConfig(auth.Secret)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	config.Algo = crypto.SHA256
+	auth.Secret, err = config.Bytes()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	_, err = ValidateTOTP(auth, last)
+	if err == nil {
+		t.Fatal("auth: expect TOTP validation failure with invalid hash algo")
 	}
 }
