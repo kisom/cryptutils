@@ -27,7 +27,7 @@ const (
 func GenerateKey() *[KeySize]byte {
 	var key [KeySize]byte
 	rb := util.RandBytes(KeySize)
-	if rb == nil {
+	if rb == nil || len(rb) != KeySize {
 		return nil
 	}
 	defer util.Zero(rb)
@@ -36,10 +36,16 @@ func GenerateKey() *[KeySize]byte {
 	return &key
 }
 
+var scryptParams = struct {
+	N int
+	r int
+	p int
+}{32768, 8, 4}
+
 // DeriveKey applies Scrypt with very strong parameters to generate an
 // encryption key from a passphrase and salt.
 func DeriveKey(passphrase []byte, salt []byte) *[KeySize]byte {
-	rawKey, err := scrypt.Key(passphrase, salt, 32768, 8, 4, KeySize)
+	rawKey, err := scrypt.Key(passphrase, salt, scryptParams.N, scryptParams.r, scryptParams.p, KeySize)
 	if err != nil {
 		return nil
 	}
@@ -87,11 +93,6 @@ func DecryptFile(filename string, passphrase []byte) (data []byte, err error) {
 	data = data[SaltSize:]
 
 	key := DeriveKey(passphrase, salt)
-	if key == nil {
-		err = errors.New("password: failed to derive key with Scrypt")
-		return
-	}
-
 	data, ok := Decrypt(key, data)
 	if !ok {
 		err = errors.New("password: failed to decrypt password store")
@@ -109,11 +110,6 @@ func EncryptFile(filename string, passphrase, encoded []byte) (err error) {
 	defer util.Zero(encoded)
 
 	key := DeriveKey(passphrase, salt)
-	if key == nil {
-		err = errors.New("password: failed to derive key with Scrypt")
-		return
-	}
-
 	data, ok := Encrypt(key, encoded)
 	if !ok {
 		data = nil
