@@ -21,10 +21,32 @@ const testInvalidDigest = crypto.SHA256
 func TestNewTOTP(t *testing.T) {
 	TOTPProvider = "auth test provider"
 
-	var err error
-	_, err = NewGoogleTOTP()
+	auth, ud, err := NewGoogleTOTP("")
 	if err != nil {
 		t.Fatalf("%v", err)
+	}
+
+	if ud == nil {
+		t.Fatalf("auth: user details not exported for new TOTP")
+	}
+
+	if ud.QR != nil {
+		t.Fatalf("auth: TOTP QR should be nil when no label is provided")
+	}
+
+	// Make sure that the user can actually export this thing.
+	kb, err := base32.StdEncoding.DecodeString(ud.Secret)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	userAuth, err := ImportGoogleTOTP(kb)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if !bytes.Equal(userAuth.Secret, auth.Secret) {
+		t.Fatalf("failed to import user TOTP:\n\tExpected %x\n\tHave %x\n", auth.Secret, userAuth.Secret)
 	}
 }
 
@@ -228,7 +250,7 @@ func TestTOTPPRNGFailure(t *testing.T) {
 	oldPRNG := util.PRNG()
 	util.SetPRNG(&bytes.Buffer{})
 
-	_, err := NewGoogleTOTP()
+	_, _, err := NewGoogleTOTP("")
 	if err == nil {
 		t.Fatal("auth: expect TOTP generation failure in the face of a PRNG failure")
 	}
@@ -246,7 +268,7 @@ func TestTOTPSanityChecks(t *testing.T) {
 		t.Fatal("auth: validation should fail with invalid authenticator")
 	}
 
-	auth, err := NewGoogleTOTP()
+	auth, _, err := NewGoogleTOTP("")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -276,6 +298,11 @@ func TestTOTPQRFailure(t *testing.T) {
 	if err == nil {
 		t.Fatalf("auth: expected failure to encode QR image with label=%d bytes", len(label))
 	}
+
+	_, _, err = NewGoogleTOTP(string(label))
+	if err == nil {
+		t.Fatalf("auth: expected failure to encode QR image with label=%d bytes", len(label))
+	}
 }
 
 // TestTOTPParseFailures validates that the parser fails with invalid data.
@@ -294,7 +321,7 @@ func TestTOTPParseFailures(t *testing.T) {
 // TestTOTPInvalidHashValidation validates failure of validation
 // with an unsupported hash algo.
 func TestTOTPInvalidHashValidation(t *testing.T) {
-	auth, err := NewGoogleTOTP()
+	auth, _, err := NewGoogleTOTP("")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

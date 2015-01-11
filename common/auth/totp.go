@@ -257,13 +257,19 @@ func truncate(in []byte) int64 {
 
 // NewGoogleTOTP generates a new Google-authenticator standard TOTP
 // token.
-func NewGoogleTOTP() (*Authenticator, error) {
+func NewGoogleTOTP(label string) (*Authenticator, *UserTOTP, error) {
 	key := util.RandBytes(sha1.Size)
 	if key == nil {
-		return nil, errors.New("auth: PRNG failure")
+		return nil, nil, errors.New("auth: PRNG failure")
 	}
 
-	return ImportGoogleTOTP(key)
+	auth, _ := ImportGoogleTOTP(key)
+	ud, err := ExportUserTOTP(auth, label)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return auth, ud, nil
 }
 
 // ImportGoogleTOTP creates a new Google-authenticator standard TOTP
@@ -304,7 +310,7 @@ func ValidateTOTP(auth *Authenticator, otp string) (bool, error) {
 	}
 
 	if auth.Last == otp {
-		return false, ErrInvalidOTP
+		return false, ErrValidationFail
 	}
 
 	config, err := ParseTOTPConfig(auth.Secret)
@@ -332,7 +338,7 @@ func ValidateTOTP(auth *Authenticator, otp string) (bool, error) {
 	}
 
 	if !verified {
-		return false, ErrInvalidOTP
+		return false, ErrValidationFail
 	}
 
 	return true, nil

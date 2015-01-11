@@ -1,6 +1,10 @@
 package auth
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/kisom/cryptutils/common/util"
+)
 
 var (
 	// ErrUnsupportedHash is returned when the user tries to use a
@@ -11,8 +15,14 @@ var (
 // An Authenticator stores a one-time password key for a user. The type is used to select the appropriate verification algorithm.
 type Authenticator struct {
 	Type   string `json:"type"`
+	Label  string `json:"label"`
 	Last   string `json:"last"`
 	Secret []byte `json:"secret"`
+}
+
+// Zero wipes the Authenticator's secret.
+func (a *Authenticator) Zero() {
+	util.Zero(a.Secret)
 }
 
 var (
@@ -24,7 +34,7 @@ var (
 
 	// ErrInvalidOTP indicates that an OTP is invalid for the
 	// Authenticator.
-	ErrInvalidOTP = errors.New("sync: invalid OTP")
+	ErrValidationFail = errors.New("sync: invalid OTP")
 )
 
 // Validators contains a mapping of authenticator types to validation
@@ -40,7 +50,7 @@ var Validators = map[string]func(*Authenticator, string) (bool, error){
 // the OTP is valid. It returns a boolean value indicating whether
 // the Authenticator needs to be validated (i.e., if it contains
 // a counter, and therefore the counter value needs to be stored).
-func Validate(auth *Authenticator, otp string) (needsUpdate bool, err error) {
+func Validate(auth *Authenticator, password string) (needsUpdate bool, err error) {
 	if auth == nil {
 		return false, ErrInvalidAuthenticator
 	}
@@ -50,5 +60,5 @@ func Validate(auth *Authenticator, otp string) (needsUpdate bool, err error) {
 		return false, ErrInvalidAuthenticator
 	}
 
-	return validator(auth, otp)
+	return validator(auth, password)
 }

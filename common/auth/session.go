@@ -101,7 +101,7 @@ func ValidateSession(auth *Authenticator, otp string) (bool, error) {
 	}
 
 	if len(otpBytes) != 2*sessionLength {
-		return false, ErrInvalidOTP
+		return false, ErrValidationFail
 	}
 
 	lastBytes, err := hex.DecodeString(auth.Last)
@@ -114,11 +114,11 @@ func ValidateSession(auth *Authenticator, otp string) (bool, error) {
 	expected := h.Sum(nil)
 
 	if !bytes.Equal(otpBytes[:sessionLength], lastBytes) {
-		return false, ErrInvalidOTP
+		return false, ErrValidationFail
 	}
 
 	if !hmac.Equal(otpBytes[sessionLength:], expected) {
-		return false, ErrInvalidOTP
+		return false, ErrValidationFail
 	}
 
 	next := util.RandBytes(sessionLength)

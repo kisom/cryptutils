@@ -35,7 +35,7 @@ func ValidatePassword(auth *Authenticator, password string) (bool, error) {
 
 	err := bcrypt.CompareHashAndPassword(auth.Secret, []byte(password))
 	if err != nil {
-		err = ErrInvalidOTP
+		err = ErrValidationFail
 	}
 	return false, err
 }

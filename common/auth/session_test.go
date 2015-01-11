@@ -202,10 +202,10 @@ func TestSessionValidationFailures(t *testing.T) {
 	sessionAuth.Last = last
 
 	var tmpOTP string
-	if otp[0] == 'A' {
-		tmpOTP = "B" + otp[1:]
+	if otp[0] == 'a' {
+		tmpOTP = "b" + otp[1:]
 	} else {
-		tmpOTP = "A" + otp[1:]
+		tmpOTP = "a" + otp[1:]
 	}
 
 	if _, err = ValidateSession(sessionAuth, tmpOTP); err == nil {
@@ -213,10 +213,10 @@ func TestSessionValidationFailures(t *testing.T) {
 	}
 
 	offset := 3*sessionLength + 1
-	if otp[sessionLength+1] == 'A' {
-		tmpOTP = otp[:offset] + "B" + otp[offset+1:]
+	if otp[sessionLength+1] == 'a' {
+		tmpOTP = otp[:offset] + "b" + otp[offset+1:]
 	} else {
-		tmpOTP = otp[:offset] + "A" + otp[offset+1:]
+		tmpOTP = otp[:offset] + "a" + otp[offset+1:]
 	}
 
 	if _, err = ValidateSession(sessionAuth, tmpOTP); err == nil {

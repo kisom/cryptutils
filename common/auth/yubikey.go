@@ -107,7 +107,7 @@ func ValidateYubiKey(auth *Authenticator, otp string) (bool, error) {
 	}
 
 	if auth.Last == otp {
-		return false, ErrInvalidOTP
+		return false, ErrValidationFail
 	}
 
 	config, err := ParseYubiKeyConfig(auth.Secret)
@@ -120,20 +120,20 @@ func ValidateYubiKey(auth *Authenticator, otp string) (bool, error) {
 
 	pub, ykOTP, err := yubikey.ParseOTPString(otp)
 	if err != nil {
-		return false, ErrInvalidOTP
+		return false, ErrValidationFail
 	}
 
 	if !bytes.Equal(pub, config.Public) {
-		return false, ErrInvalidOTP
+		return false, ErrValidationFail
 	}
 
 	userToken, err := ykOTP.Parse(tmpKey)
 	if err != nil {
-		return false, ErrInvalidOTP
+		return false, ErrValidationFail
 	}
 
 	if getTokenCounter(userToken) < config.Counter {
-		return false, ErrInvalidOTP
+		return false, ErrValidationFail
 	}
 
 	config.Counter = getTokenCounter(userToken)

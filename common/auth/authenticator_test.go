@@ -37,7 +37,7 @@ func TestValidationYubiKey(t *testing.T) {
 
 // Test validating a TOTP.
 func TestValidationTOTP(t *testing.T) {
-	auth, err := NewGoogleTOTP()
+	auth, _, err := NewGoogleTOTP("")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -46,5 +46,20 @@ func TestValidationTOTP(t *testing.T) {
 	auth.Last = ""
 	if _, err := Validate(auth, otp); err != nil {
 		t.Fatalf("%v", err)
+	}
+}
+
+// Test the zeroising code.
+func TestAuthenticatorZero(t *testing.T) {
+	auth, err := NewPasswordAuth("password", 10)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	auth.Zero()
+	for i := 0; i < len(auth.Secret); i++ {
+		if auth.Secret[i] != 0 {
+			t.Fatal("auth: failed to wipe authenticator")
+		}
 	}
 }
