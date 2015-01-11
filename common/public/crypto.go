@@ -11,6 +11,7 @@ import (
 	"code.google.com/p/go.crypto/nacl/box"
 	"github.com/agl/ed25519"
 	"github.com/kisom/cryptutils/common/secret"
+	"github.com/kisom/cryptutils/common/tlv"
 	"github.com/kisom/cryptutils/common/util"
 )
 
@@ -68,12 +69,12 @@ func MarshalPrivate(priv *PrivateKey) ([]byte, error) {
 		return nil, ErrCorruptPrivateKey
 	}
 
-	buf := new(bytes.Buffer)
-	buf.Write(priv.D[:])
-	buf.Write(priv.S[:])
-	buf.Write(priv.E[:])
-	buf.Write(priv.V[:])
-	return buf.Bytes(), nil
+	enc := tlv.NewFixedEncoder(160, 4)
+	enc.Encode(priv.D[:])
+	enc.Encode(priv.S[:])
+	enc.Encode(priv.E[:])
+	enc.Encode(priv.V[:])
+	return enc.Bytes(), nil
 }
 
 // ExportPrivate PEM-encodes the locked private key. The private key is secured
@@ -118,9 +119,6 @@ const marshalLen = 160
 
 // UnmarshalPrivate parses a byte slice into a private key.
 func UnmarshalPrivate(in []byte) (*PrivateKey, error) {
-	if len(in) != marshalLen {
-		return nil, ErrCorruptPrivateKey
-	}
 	priv := PrivateKey{
 		D: new([32]byte),
 		S: new([64]byte),
@@ -129,12 +127,41 @@ func UnmarshalPrivate(in []byte) (*PrivateKey, error) {
 			V: new([32]byte),
 		},
 	}
-	buf := bytes.NewBuffer(in)
 
-	buf.Read(priv.D[:])
-	buf.Read(priv.S[:])
-	buf.Read(priv.E[:])
-	buf.Read(priv.V[:])
+	var mkey struct {
+		D []byte
+		S []byte
+		E []byte
+		V []byte
+	}
+
+	dec := tlv.NewDecoder(in)
+	err := dec.Decode(&mkey.D)
+	if err != nil {
+		return nil, err
+	}
+	err = dec.Decode(&mkey.S)
+	if err != nil {
+		return nil, err
+	}
+	err = dec.Decode(&mkey.E)
+	if err != nil {
+		return nil, err
+	}
+	err = dec.Decode(&mkey.V)
+	if err != nil {
+		return nil, err
+	}
+
+	copy(priv.D[:], mkey.D)
+	copy(priv.S[:], mkey.S)
+	copy(priv.E[:], mkey.E)
+	copy(priv.V[:], mkey.V)
+
+	util.Zero(mkey.D)
+	util.Zero(mkey.S)
+	util.Zero(mkey.E)
+	util.Zero(mkey.V)
 	return &priv, nil
 }
 
@@ -211,6 +238,12 @@ func GenerateKey() (*PrivateKey, error) {
 // Encrypt generates an ephemeral curve25519 key pair and encrypts a
 // new message to the peer's public key.
 func Encrypt(pub *PublicKey, message []byte) (out []byte, ok bool) {
+	enc := &tlv.Encoder{}
+	enc.Encode(message)
+	return encrypt(pub, enc.Bytes())
+}
+
+func encrypt(pub *PublicKey, message []byte) (out []byte, ok bool) {
 	if !pub.Valid() {
 		return nil, false
 	}
@@ -235,6 +268,28 @@ const overhead = 32 + util.NonceSize + box.Overhead
 
 // Decrypt opens the secured message using the private key.
 func Decrypt(priv *PrivateKey, enc []byte) (message []byte, ok bool) {
+	out, ok := decrypt(priv, enc)
+	if !ok {
+		return nil, false
+	}
+	defer util.Zero(out)
+
+	var m []byte
+	dec := tlv.NewDecoder(out)
+	err := dec.Decode(&m)
+	if err != nil {
+		return nil, false
+	}
+
+	if dec.Length() != 0 {
+		util.Zero(m)
+		return nil, false
+	}
+
+	return m, true
+}
+
+func decrypt(priv *PrivateKey, enc []byte) (message []byte, ok bool) {
 	if !priv.Valid() {
 		return nil, false
 	}
@@ -249,8 +304,7 @@ func Decrypt(priv *PrivateKey, enc []byte) (message []byte, ok bool) {
 	var nonce [util.NonceSize]byte
 	copy(nonce[:], enc[32:])
 
-	message, ok = box.Open(message, enc[msgStart:], &nonce, &pub, priv.D)
-	return
+	return box.Open(message, enc[msgStart:], &nonce, &pub, priv.D)
 }
 
 // Sign signs the message with the private key using Ed25519.
@@ -286,12 +340,15 @@ func EncryptAndSign(priv *PrivateKey, pub *PublicKey, message []byte) ([]byte, b
 		return nil, false
 	}
 
-	message = append(message, sig...)
-	enc, ok := Encrypt(pub, message)
+	var enc = &tlv.Encoder{}
+	enc.Encode(message)
+	enc.Encode(sig)
+
+	ct, ok := encrypt(pub, enc.Bytes())
 	if !ok {
 		return nil, false
 	}
-	return enc, true
+	return ct, true
 }
 
 // DecryptAndVerify decrypts the message and verifies its signature.
@@ -304,23 +361,40 @@ func DecryptAndVerify(priv *PrivateKey, pub *PublicKey, enc []byte) ([]byte, boo
 		return nil, false
 	}
 
-	message, ok := Decrypt(priv, enc)
+	out, ok := decrypt(priv, enc)
 	if !ok {
 		return nil, false
 	}
 
-	end := len(message) - ed25519.SignatureSize
-	sig := message[end:]
-	if len(sig) != ed25519.SignatureSize {
+	var m, s []byte
+	dec := tlv.NewDecoder(out)
+	err := dec.Decode(&m)
+	if err != nil {
 		return nil, false
 	}
 
-	message = message[:end]
-	if !Verify(pub, message, sig) {
+	err = dec.Decode(&s)
+	if err != nil {
+		util.Zero(m)
 		return nil, false
 	}
 
-	return message, true
+	if dec.Length() != 0 {
+		util.Zero(m)
+		return nil, false
+	}
+
+	if len(s) != ed25519.SignatureSize {
+		util.Zero(m)
+		return nil, false
+	}
+
+	if !Verify(pub, m, s) {
+		util.Zero(m)
+		return nil, false
+	}
+
+	return m, true
 }
 
 // LockKey secures the private key with the passphrase, using Scrypt
@@ -338,9 +412,6 @@ func LockKey(priv *PrivateKey, passphrase []byte) ([]byte, bool) {
 	}
 
 	key := secret.DeriveKey(passphrase, salt)
-	if key == nil {
-		return nil, false
-	}
 	defer util.Zero(key[:])
 
 	out, ok := secret.Encrypt(key, out)
@@ -361,9 +432,6 @@ func UnlockKey(locked, passphrase []byte) (*PrivateKey, bool) {
 	locked = locked[saltSize:]
 
 	key := secret.DeriveKey(passphrase, salt)
-	if key == nil {
-		return nil, false
-	}
 	defer util.Zero(key[:])
 
 	out, ok := secret.Decrypt(key, locked)

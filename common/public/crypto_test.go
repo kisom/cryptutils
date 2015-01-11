@@ -6,10 +6,86 @@ import (
 	"encoding/pem"
 	"testing"
 
+	"code.google.com/p/go.crypto/nacl/box"
+
+	"github.com/kisom/cryptutils/common/secret"
+	"github.com/kisom/cryptutils/common/tlv"
 	"github.com/kisom/cryptutils/common/util"
 )
 
 var testKey *PrivateKey
+
+// write the message two times to PT
+func testEncryptTwo(pub *PublicKey, message []byte) (out []byte, ok bool) {
+	if !pub.Valid() {
+		return nil, false
+	}
+
+	prng := util.PRNG()
+	epub, epriv, err := box.GenerateKey(prng)
+	if err != nil {
+		return nil, false
+	}
+
+	enc := &tlv.Encoder{}
+	enc.Encode(message)
+	enc.Encode(message)
+
+	out = epub[:]
+	nonce := util.NewNonce()
+	out = append(out, nonce[:]...)
+
+	out = box.Seal(out, enc.Bytes(), nonce, pub.E, epriv)
+	ok = true
+	return
+}
+
+// write the message three times to PT
+func testEncryptThree(pub *PublicKey, message []byte) (out []byte, ok bool) {
+	if !pub.Valid() {
+		return nil, false
+	}
+
+	prng := util.PRNG()
+	epub, epriv, err := box.GenerateKey(prng)
+	if err != nil {
+		return nil, false
+	}
+
+	enc := &tlv.Encoder{}
+	enc.Encode(message)
+	enc.Encode(message)
+	enc.Encode(message)
+
+	out = epub[:]
+	nonce := util.NewNonce()
+	out = append(out, nonce[:]...)
+
+	out = box.Seal(out, enc.Bytes(), nonce, pub.E, epriv)
+	ok = true
+	return
+}
+
+// encrypt the message without encoding it
+func testEncryptBare(pub *PublicKey, message []byte) (out []byte, ok bool) {
+	if !pub.Valid() {
+		return nil, false
+	}
+
+	prng := util.PRNG()
+	epub, epriv, err := box.GenerateKey(prng)
+	if err != nil {
+		return nil, false
+	}
+
+	out = epub[:]
+	nonce := util.NewNonce()
+	out = append(out, nonce[:]...)
+
+	out = box.Seal(out, message, nonce, pub.E, epriv)
+	ok = true
+	return
+}
 
 func TestGenerateKey(t *testing.T) {
 	var err error
@@ -102,6 +178,14 @@ func TestPrivateSerialisation(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+	l := len(out)
+	for i := 0; i < l; i++ {
+		_, err = UnmarshalPrivate(out[:i])
+		if err == nil {
+			t.Fatal("public: expect parsing failure with invalid data")
+		}
+	}
+
 	if _, err = UnmarshalPrivate(out[1:]); err == nil {
 		t.Fatal("public: expect unmarshaling to fail with invalid private key")
 	}
@@ -178,6 +262,26 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Fatalf("Corrupt message.\nRecovered: %x\nMessage: %x\n",
 			recovered, message)
 	}
+
+	out, ok = testEncryptThree(testKey.PublicKey, message)
+	if !ok {
+		t.Fatal("public: encrypt failed")
+	}
+
+	_, ok = Decrypt(testKey, out)
+	if ok {
+		t.Fatal("public: decrypt should fail with improperly-encoded message")
+	}
+
+	out, ok = testEncryptBare(testKey.PublicKey, message)
+	if !ok {
+		t.Fatal("public: encrypt failed")
+	}
+
+	_, ok = Decrypt(testKey, out)
+	if ok {
+		t.Fatal("public: decrypt should fail with improperly-encoded message")
+	}
 }
 
 func TestSignVerify(t *testing.T) {
@@ -226,6 +330,15 @@ func TestLockKey(t *testing.T) {
 		t.Fatalf("Corrupt message.\nRecovered: %x\nMessage: %x\n",
 			recovered, message)
 	}
+
+	salt := util.RandBytes(saltSize)
+	buf := bytes.NewBuffer(salt)
+	util.SetPRNG(buf)
+	_, ok = LockKey(priv, []byte("password"))
+	if ok {
+		t.Fatal("public: expect locking to fail with bad PRNG")
+	}
+	util.SetPRNG(rand.Reader)
 }
 
 func TestGenerateFailure(t *testing.T) {
@@ -355,5 +468,122 @@ func TestLockFailures(t *testing.T) {
 	_, ok = UnlockKey(locked[:saltSize], password)
 	if ok {
 		t.Fatal("public: unlock should fail with invalid locked key")
+	}
+}
+
+func TestEncryptAndSign(t *testing.T) {
+	noSigCT, ok := Encrypt(testKey.PublicKey, message)
+	if !ok {
+		t.Fatal("public: encrypt failed")
+	}
+
+	bareCT, ok := encrypt(testKey.PublicKey, message)
+	if !ok {
+		t.Fatal("public: encrypt failed")
+	}
+
+	_, ok = DecryptAndVerify(testKey, testKey.PublicKey, bareCT)
+	if ok {
+		t.Fatal("public: decrypt and verify should fail with unsigned message")
+	}
+
+	_, ok = DecryptAndVerify(testKey, testKey.PublicKey, noSigCT)
+	if ok {
+		t.Fatal("public: decrypt and verify should fail with unsigned message")
+	}
+
+	signedCT, ok := EncryptAndSign(testKey, testKey.PublicKey, message)
+	if !ok {
+		t.Fatal("public: encrypt and sign failed")
+	}
+
+	out, ok := DecryptAndVerify(testKey, testKey.PublicKey, signedCT)
+	if !ok {
+		t.Fatal("public: decrypt and verify failed")
+	}
+
+	if !bytes.Equal(out, message) {
+		t.Fatal("public: invalid message recovered from encrypt and sign")
+	}
+
+	var fakeCT = make([]byte, 128)
+	_, ok = DecryptAndVerify(testKey, testKey.PublicKey, fakeCT)
+	if ok {
+		t.Fatal("public: decrypt and verify should fail with invalid ciphertext")
+	}
+
+	_, ok = EncryptAndSign(nil, nil, message)
+	if ok {
+		t.Fatal("public: encrypt and sign should fail with invalid private key")
+	}
+
+	_, ok = EncryptAndSign(testKey, nil, message)
+	if ok {
+		t.Fatal("public: encrypt and sign should fail with invalid public key")
+	}
+}
+
+func TestDecryptAndSignFailure(t *testing.T) {
+	badPub, err := GenerateKey()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	var badCT = make([]byte, 8)
+	signedCT, ok := EncryptAndSign(testKey, testKey.PublicKey, message)
+	if !ok {
+		t.Fatal("public: encrypt and sign failed")
+	}
+
+	if _, ok = DecryptAndVerify(nil, testKey.PublicKey, signedCT); ok {
+		t.Fatal("public: decrypt and verify should fail with invalid private key")
+	}
+
+	if _, ok = DecryptAndVerify(testKey, nil, signedCT); ok {
+		t.Fatal("public: decrypt and verify should fail with invalid public key")
+	}
+
+	if _, ok = DecryptAndVerify(testKey, testKey.PublicKey, badCT); ok {
+		t.Fatal("public: decrypt and verify should fail with invalid ciphertext")
+	}
+
+	twoEnc, ok := testEncryptTwo(testKey.PublicKey, message)
+	if !ok {
+		t.Fatal("public: encrypt failed")
+	}
+
+	if _, ok = DecryptAndVerify(testKey, testKey.PublicKey, twoEnc); ok {
+		t.Fatal("public: decrypt and verify should fail with invalid ciphertext")
+	}
+
+	tripleEnc, ok := testEncryptThree(testKey.PublicKey, message)
+	if !ok {
+		t.Fatal("public: encrypt failed")
+	}
+
+	if _, ok = DecryptAndVerify(testKey, testKey.PublicKey, tripleEnc); ok {
+		t.Fatal("public: decrypt and verify should fail with invalid ciphertext")
+	}
+
+	if _, ok = DecryptAndVerify(testKey, badPub.PublicKey, signedCT); ok {
+		t.Fatal("public: decrypt and verify should fail with invalid ciphertext")
+	}
+}
+
+func TestUnlockKeyFail(t *testing.T) {
+	var password = []byte("password")
+	var message = []byte("this is not a valid private key")
+	salt := util.RandBytes(saltSize)
+
+	key := secret.DeriveKey(password, salt)
+	out, ok := secret.Encrypt(key, message)
+	if !ok {
+		t.Fatal("public: encrypt failed")
+	}
+
+	out = append(salt, out...)
+	_, ok = UnlockKey(out, password)
+	if ok {
+		t.Fatal("public: unlock key should fail with invalid private key")
 	}
 }
