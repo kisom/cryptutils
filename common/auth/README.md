@@ -235,7 +235,7 @@ Password: password
 2015/01/09 16:41:23 authentication successful
 User name: kyle
 Password: passwort
-2015/01/09 16:41:29 authentication failed (sync: invalid OTP)
+2015/01/09 16:41:29 authentication failed (auth: authentication failed)
 User name: nouser
 Password: password
 2015/01/09 16:41:40 authentication failed (no such user)

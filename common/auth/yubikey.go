@@ -38,7 +38,7 @@ func (config *YubiKeyConfig) Bytes() []byte {
 	return enc.Bytes()
 }
 
-var errInvalidYKConfig = errors.New("sync: invalid packed YubiKey config")
+var errInvalidYKConfig = errors.New("auth: invalid packed YubiKey config")
 
 // ParseYubiKeyConfig attempts to parse a YubiKeyConfig from a
 // byte slice.

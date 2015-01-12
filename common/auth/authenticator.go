@@ -30,11 +30,11 @@ var (
 	// passed to Validate is not a valid authenticator. Ensure
 	// that it is a type supported by the server, and that it is
 	// an actual value.
-	ErrInvalidAuthenticator = errors.New("sync: invalid authenticator")
+	ErrInvalidAuthenticator = errors.New("auth: invalid authenticator")
 
 	// ErrInvalidOTP indicates that an OTP is invalid for the
 	// Authenticator.
-	ErrValidationFail = errors.New("sync: invalid OTP")
+	ErrValidationFail = errors.New("auth: authentication failed")
 )
 
 // Validators contains a mapping of authenticator types to validation
