@@ -39,7 +39,7 @@ secrets -x label
 To change the password for *label* (password set overwriting):
 
 ```
-secrets -s -o label
+secrets -s -w label
 ```
 
 To remove the password for *label* (password remove):
