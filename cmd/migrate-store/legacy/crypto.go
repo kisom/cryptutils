@@ -3,7 +3,9 @@
 // encryption. Encryption keys are typically derived from Scrypt
 // (using 32768, 8, and 4 as the parameters) to obtain a key suitable
 // for use with NaCl's secretbox (XSalsa20 and Poly1305).
-package secret
+//
+// This is the legacy version.
+package legacy
 
 import (
 	"errors"
@@ -40,7 +42,7 @@ var scryptParams = struct {
 	N int
 	r int
 	p int
-}{1048576, 8, 2}
+}{32768, 8, 4}
 
 // DeriveKey applies Scrypt with very strong parameters to generate an
 // encryption key from a passphrase and salt.

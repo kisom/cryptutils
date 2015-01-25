@@ -23,15 +23,19 @@ README.
 secret-key encryption, NaCl's box (Curve25519, Salsa20, and Poly1305)
 for public-key encryption, and Ed25519 for digital
 signatures. Typically, secret keys are derived in one of ways: via
-Scrypt, or via an ECDH exchange. For Scrypt, the parameters N=32768,
-r=8, and p=4 are used. This makes generating keys using this expensive
-(typically, around half a second on my 2.6 GHz i5 machine with 8G of
+Scrypt, or via an ECDH exchange. For Scrypt, the parameters N=1048576,
+r=8, and p=1 are used. This makes generating keys using this expensive
+(typically, around 5 seconds on my 2.6 GHz i5 machine with 6G of
 RAM). When encrypting messages using public keys, an ephemeral key is
 generated for the encryption and a shared key is derived from
 this. The public key is prepended to the message for extraction by the
 recipient. When signing and encrypting using public keys, the message
 is signed before encrypting. The recipient will decrypt, then validate
 the signature.
+
+**NOTE**: previous versions used N=32768, and will need to use the
+`migrate-store` utility to migrate the store over (or use the previous
+versions).
 
 ### Motivation and history
 
