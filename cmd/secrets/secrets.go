@@ -12,10 +12,8 @@ import (
 	"time"
 
 	"github.com/gokyle/readpass"
-	//"github.com/kisom/cryptutils/common/secret"
-	"github.com/juztin/cryptutils/common/secret"
-	//"github.com/kisom/cryptutils/common/store"
-	"github.com/juztin/cryptutils/common/store"
+	"github.com/kisom/cryptutils/common/secret"
+	"github.com/kisom/cryptutils/common/store"
 	"github.com/kisom/cryptutils/common/util"
 )
 

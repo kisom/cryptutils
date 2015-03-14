@@ -11,5 +11,3 @@
 /cmd/secret-sync-server/*.db
 /cmd/secret-sync-server/*.key
 /cmd/secret-sync-server/*.pem
-
-*.swp
