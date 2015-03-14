@@ -18,6 +18,25 @@ as possible).
 
 ## Usage (using a password manager example):
 
+To create a new password store *(defaults to `~/.secrets.db`)*:
+
+```
+secrets -init
+```
+
+To create a new password store specific file:
+```
+secrets -init -f ~/.mysecrets
+```
+
+To create a new password store with a specific scrypt value:
+```
+secrets -init -t 1
+```
+*If you choose a non-default value you'll need to use
+the `-t` argument for all other crud operations to the store.*  
+**Valid values are `1, 2, 3, 4`, with `4` being the default/strongest.*
+
 To add a new password (password set):
 
 ```
