@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/kisom/cryptutils/common/secret"
+	//"github.com/kisom/cryptutils/common/secret"
+	"github.com/juztin/cryptutils/common/secret"
 	"github.com/kisom/cryptutils/common/util"
 )
 
@@ -186,7 +187,7 @@ func (s *SecretStore) Merge(other *SecretStore) []string {
 
 // MarshalSecretStore serialises and encrypts the data store to a byte
 // slice suitable for writing to disk.
-func MarshalSecretStore(s *SecretStore) ([]byte, bool) {
+func MarshalSecretStore(s *SecretStore, p secret.ScryptParams) ([]byte, bool) {
 	if !s.Valid() {
 		return nil, false
 	}
@@ -202,7 +203,8 @@ func MarshalSecretStore(s *SecretStore) ([]byte, bool) {
 		return nil, false
 	}
 
-	key := secret.DeriveKey(s.passphrase, salt)
+	//key := secret.DeriveKey(s.passphrase, salt)
+	key := secret.DeriveKeyStrength(s.passphrase, salt, p)
 	if key == nil {
 		return nil, false
 	}
@@ -220,14 +222,15 @@ func MarshalSecretStore(s *SecretStore) ([]byte, bool) {
 
 // UnmarshalSecretStore decrypts and parses the secret store contained
 // in the input byte slice.
-func UnmarshalSecretStore(in, passphrase []byte) (*SecretStore, bool) {
+func UnmarshalSecretStore(in, passphrase []byte, p secret.ScryptParams) (*SecretStore, bool) {
 	if len(in) < saltSize {
 		return nil, false
 	}
 
 	salt := in[:saltSize]
 	enc := in[saltSize:]
-	key := secret.DeriveKey(passphrase, salt)
+	//key := secret.DeriveKey(passphrase, salt, p)
+	key := secret.DeriveKeyStrength(passphrase, salt, p)
 	if key == nil {
 		return nil, false
 	}

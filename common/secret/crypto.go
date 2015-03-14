@@ -21,6 +21,12 @@ const (
 	nonceSize = 24
 )
 
+type ScryptParams struct {
+	N int
+	R int
+	P int
+}
+
 // GenerateKey returns a randomly generated secretbox key. Typically,
 // you should use DeriveKey to get a key from a passphrase
 // instead. Returns nil on failure.
@@ -36,16 +42,13 @@ func GenerateKey() *[KeySize]byte {
 	return &key
 }
 
-var scryptParams = struct {
-	N int
-	r int
-	p int
-}{1048576, 8, 2}
+// Default Scrypt work factors
+var scryptDefaults = ScryptParams{1048576, 8, 2}
 
-// DeriveKey applies Scrypt with very strong parameters to generate an
-// encryption key from a passphrase and salt.
-func DeriveKey(passphrase []byte, salt []byte) *[KeySize]byte {
-	rawKey, err := scrypt.Key(passphrase, salt, scryptParams.N, scryptParams.r, scryptParams.p, KeySize)
+// DeriveKeyStrength applies Scrypt using the given work parameters
+// to generate an encryption key from a passphrase and salt.
+func DeriveKeyStrength(passphrase []byte, salt []byte, p ScryptParams) *[KeySize]byte {
+	rawKey, err := scrypt.Key(passphrase, salt, p.N, p.R, p.P, KeySize)
 	if err != nil {
 		return nil
 	}
@@ -54,6 +57,12 @@ func DeriveKey(passphrase []byte, salt []byte) *[KeySize]byte {
 	copy(key[:], rawKey)
 	util.Zero(rawKey)
 	return &key
+}
+
+// DeriveKey applies Scrypt with very strong parameters to generate an
+// encryption key from a passphrase and salt.
+func DeriveKey(passphrase []byte, salt []byte) *[KeySize]byte {
+	return DeriveKeyStrength(passphrase, salt, scryptDefaults)
 }
 
 // Encrypt generates a random nonce and encrypts the input using

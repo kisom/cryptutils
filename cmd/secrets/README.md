@@ -2,7 +2,7 @@
 ### a command line secrets manager
 
 This a personal secrets manager, written for me, that operates on the
-command line. It wrote it primarily to store and retrieve passwords
+command line. I wrote it primarily to store and retrieve passwords
 and optional metadata, but it can be used to store almost any kind of
 secret. It is also a general utility for interacting with secret
 stores built using the
