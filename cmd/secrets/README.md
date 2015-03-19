@@ -29,13 +29,13 @@ To create a new password store specific file:
 secrets -init -f ~/.mysecrets
 ```
 
-To create a new password store with a specific scrypt value:
+To create a new password store with interactive scrypt work factors:
 ```
-secrets -init -t 1
+secrets -init -i
 ```
-*If you choose a non-default value you'll need to use
-the `-t` argument for all other crud operations to the store.*  
-**Valid values are `1, 2, 3, 4`, with `4` being the default/strongest.*
+*If you specify interactive you'll need to specify it
+for all other crud operations to the store.*
+**This defaults to standard mode**
 
 To add a new password (password set):
 
