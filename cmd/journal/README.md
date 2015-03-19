@@ -18,6 +18,25 @@ Entries are displayed in plain text with no formatting; the output
 could be piped elsewhere to display the entry with formatting, but I
 don't find this useful and therefore haven't put it in.
 
+To create a new password store *(defaults to `~/.cu_journal`)*:
+
+```
+journal -init
+```
+
+To create a new journal store specific file:
+```
+journal -init -f ~/.myjournal
+```
+
+To create a new journal store with interactive scrypt work factors:
+```
+journal -init -i
+```
+*If you specify interactive you'll need to specify it
+for all other crud operations to the store.*
+**This defaults to standard mode**
+
 Writing an entry:
 
 ```

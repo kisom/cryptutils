@@ -72,31 +72,38 @@ func loadStore(path string, m secret.ScryptMode) *store.SecretStore {
 		}
 		return passwords
 	}
-	return newStore(path, passphrase, m)
+	util.Errorf("could not find %s", path)
+	return nil
 }
 
-func newStore(path string, passphrase []byte, m secret.ScryptMode) *store.SecretStore {
+func initStore(path string, m secret.ScryptMode) error {
+	passphrase, err := util.PassPrompt("Secrets passphrase> ")
+	if err != nil {
+		util.Errorf("Failed to read passphrase: %v", err)
+		return err
+	}
 	defer util.Zero(passphrase)
 	passwords := store.NewSecretStore(passphrase)
 	if passwords == nil {
-		return nil
+		return fmt.Errorf("failed to create store")
 	}
 
+	fmt.Println("creating store...")
 	fileData, ok := store.MarshalSecretStore(passwords, m)
 	if !ok {
-		return nil
+		return fmt.Errorf("failed to marshal store")
 	}
 
-	err := util.WriteFile(fileData, path)
+	err = util.WriteFile(fileData, path)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	passwords, ok = store.UnmarshalSecretStore(fileData, passphrase, m)
 	if !ok {
-		return nil
+		err = fmt.Errorf("failed to unmarshal store")
 	}
-	return passwords
+	return err
 }
 
 const timeFormat = "2006-01-2 15:04 MST"
@@ -288,6 +295,7 @@ func editEntry(ps *store.SecretStore, cfg *config) error {
 
 func main() {
 	baseFile := filepath.Join(os.Getenv("HOME"), ".cu_journal")
+	doInit := flag.Bool("init", false, "initialize a new store")
 	currentEditor := os.Getenv("EDITOR")
 	editor := flag.String("editor", currentEditor, "editor for writing entries")
 	doEdit := flag.Bool("e", false, "edit entry")
@@ -315,6 +323,14 @@ func main() {
 
 	var cmd command
 	switch {
+	case *doInit:
+		cmd = commandSet["init"]
+		err := initStore(*storePath, scryptMode)
+		if err != nil {
+			util.Errorf("Failed: %v", err)
+			os.Exit(1)
+		}
+		return
 	case *doEdit:
 		cmd = commandSet["edit"]
 	case *doList:

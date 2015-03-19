@@ -32,8 +32,30 @@ var commandSet = map[string]command{
 	"qr":    {false, 2, showQR, []string{"label", "filename"}},
 }
 
+// These constants are used to identify various OTP algorithms
+const (
+	Unknown = 0
+	HOTP    = iota + 1
+	TOTP
+	GoogleTOTP
+)
+
+func writeStore(ps *store.SecretStore, path string, m secret.ScryptMode) bool {
+	fileData, ok := store.MarshalSecretStore(ps, m)
+	if !ok {
+		return false
+	}
+
+	err := util.WriteFile(fileData, path)
+	if err != nil {
+		util.Errorf("Write failed: %v", err)
+		return false
+	}
+	return true
+}
+
 func loadStore(path string, m secret.ScryptMode) *store.SecretStore {
-	passphrase, err := util.PassPrompt("Two-factor store passphrase> ")
+	passphrase, err := util.PassPrompt("Secrets passphrase> ")
 	if err != nil {
 		util.Errorf("Failed to read passphrase: %v", err)
 		return nil
@@ -54,54 +76,39 @@ func loadStore(path string, m secret.ScryptMode) *store.SecretStore {
 		}
 		return passwords
 	}
-	return newStore(path, passphrase, m)
+	util.Errorf("could not find %s", path)
+	return nil
 }
 
-func newStore(path string, passphrase []byte, m secret.ScryptMode) *store.SecretStore {
+func initStore(path string, m secret.ScryptMode) error {
+	passphrase, err := util.PassPrompt("Secrets passphrase> ")
+	if err != nil {
+		util.Errorf("Failed to read passphrase: %v", err)
+		return err
+	}
 	defer util.Zero(passphrase)
 	passwords := store.NewSecretStore(passphrase)
 	if passwords == nil {
-		return nil
+		return fmt.Errorf("failed to create store")
 	}
 
+	fmt.Println("creating store...")
 	fileData, ok := store.MarshalSecretStore(passwords, m)
 	if !ok {
-		return nil
+		return fmt.Errorf("failed to marshal store")
 	}
 
-	err := util.WriteFile(fileData, path)
+	err = util.WriteFile(fileData, path)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	passwords, ok = store.UnmarshalSecretStore(fileData, passphrase, m)
 	if !ok {
-		return nil
+		err = fmt.Errorf("failed to unmarshal store")
 	}
-	return passwords
+	return err
 }
-
-func writeStore(ps *store.SecretStore, path string, m secret.ScryptMode) bool {
-	fileData, ok := store.MarshalSecretStore(ps, m)
-	if !ok {
-		return false
-	}
-
-	err := util.WriteFile(fileData, path)
-	if err != nil {
-		util.Errorf("Write failed: %v", err)
-		return false
-	}
-	return true
-}
-
-// These constants are used to identify various OTP algorithms
-const (
-	Unknown = 0
-	HOTP    = iota + 1
-	TOTP
-	GoogleTOTP
-)
 
 func parseOTPKind(t string) int {
 	t = strings.ToLower(t)
@@ -394,6 +401,7 @@ func showSecret(ps *store.SecretStore, cfg *config) error {
 
 func main() {
 	baseFile := filepath.Join(os.Getenv("HOME"), ".otpc.db")
+	doInit := flag.Bool("init", false, "initialize a new store")
 	doStore := flag.Bool("s", false, "store a new two-factor token")
 	storePath := flag.String("f", baseFile, "path to password store")
 	otpKind := flag.String("t", "", "OTP type (TOTP, HOTP, GOOGLE)")
@@ -419,6 +427,14 @@ func main() {
 
 	var cmd command
 	switch {
+	case *doInit:
+		cmd = commandSet["init"]
+		err := initStore(*storePath, scryptMode)
+		if err != nil {
+			util.Errorf("Failed: %v", err)
+			os.Exit(1)
+		}
+		return
 	case *doStore:
 		cmd = commandSet["store"]
 	case *doQR:
