@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gokyle/twofactor"
+	"github.com/kisom/cryptutils/common/secret"
 	"github.com/kisom/cryptutils/common/store"
 	"github.com/kisom/cryptutils/common/util"
 )
@@ -31,7 +32,7 @@ var commandSet = map[string]command{
 	"qr":    {false, 2, showQR, []string{"label", "filename"}},
 }
 
-func loadStore(path string) *store.SecretStore {
+func loadStore(path string, m secret.ScryptMode) *store.SecretStore {
 	passphrase, err := util.PassPrompt("Two-factor store passphrase> ")
 	if err != nil {
 		util.Errorf("Failed to read passphrase: %v", err)
@@ -47,23 +48,23 @@ func loadStore(path string) *store.SecretStore {
 			return nil
 		}
 		var ok bool
-		passwords, ok = store.UnmarshalSecretStore(fileData, passphrase)
+		passwords, ok = store.UnmarshalSecretStore(fileData, passphrase, m)
 		if !ok {
 			return nil
 		}
 		return passwords
 	}
-	return newStore(path, passphrase)
+	return newStore(path, passphrase, m)
 }
 
-func newStore(path string, passphrase []byte) *store.SecretStore {
+func newStore(path string, passphrase []byte, m secret.ScryptMode) *store.SecretStore {
 	defer util.Zero(passphrase)
 	passwords := store.NewSecretStore(passphrase)
 	if passwords == nil {
 		return nil
 	}
 
-	fileData, ok := store.MarshalSecretStore(passwords)
+	fileData, ok := store.MarshalSecretStore(passwords, m)
 	if !ok {
 		return nil
 	}
@@ -73,15 +74,15 @@ func newStore(path string, passphrase []byte) *store.SecretStore {
 		return nil
 	}
 
-	passwords, ok = store.UnmarshalSecretStore(fileData, passphrase)
+	passwords, ok = store.UnmarshalSecretStore(fileData, passphrase, m)
 	if !ok {
 		return nil
 	}
 	return passwords
 }
 
-func writeStore(ps *store.SecretStore, path string) bool {
-	fileData, ok := store.MarshalSecretStore(ps)
+func writeStore(ps *store.SecretStore, path string, m secret.ScryptMode) bool {
+	fileData, ok := store.MarshalSecretStore(ps, m)
 	if !ok {
 		return false
 	}
@@ -398,11 +399,17 @@ func main() {
 	otpKind := flag.String("t", "", "OTP type (TOTP, HOTP, GOOGLE)")
 	doQR := flag.Bool("qr", false, "dump QR code for secret")
 	doVersion := flag.Bool("V", false, "display version and exit")
+	scryptInteractive := flag.Bool("i", false, "use scrypt interactive")
 	flag.Parse()
 
 	if *doVersion {
 		fmt.Println("otpc version", util.VersionString())
 		os.Exit(0)
+	}
+
+	scryptMode := secret.ScryptStandard
+	if *scryptInteractive {
+		scryptMode = secret.ScryptInteractive
 	}
 
 	var cfg = &config{
@@ -427,7 +434,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	ps := loadStore(*storePath)
+	ps := loadStore(*storePath, scryptMode)
 	if ps == nil {
 		util.Errorf("Failed to open two-factor store.")
 		os.Exit(1)
@@ -442,7 +449,7 @@ func main() {
 
 	if cmd.ShouldWrite || cfg.Updated {
 		ps.Timestamp = time.Now().Unix()
-		if !writeStore(ps, *storePath) {
+		if !writeStore(ps, *storePath, scryptMode) {
 			util.Errorf("Failed to write store!")
 			os.Exit(1)
 		}

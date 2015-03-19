@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kisom/cryptutils/common/secret"
 	"github.com/kisom/cryptutils/common/store"
 	"github.com/kisom/cryptutils/common/util"
 )
@@ -35,8 +36,8 @@ func (p int64Slice) Swap(i, j int) {
 	p[j] = t
 }
 
-func writeStore(ps *store.SecretStore, path string) bool {
-	fileData, ok := store.MarshalSecretStore(ps)
+func writeStore(ps *store.SecretStore, path string, m secret.ScryptMode) bool {
+	fileData, ok := store.MarshalSecretStore(ps, m)
 	if !ok {
 		return false
 	}
@@ -49,7 +50,7 @@ func writeStore(ps *store.SecretStore, path string) bool {
 	return true
 }
 
-func loadStore(path string) *store.SecretStore {
+func loadStore(path string, m secret.ScryptMode) *store.SecretStore {
 	passphrase, err := util.PassPrompt("Secrets passphrase> ")
 	if err != nil {
 		util.Errorf("Failed to read passphrase: %v", err)
@@ -65,23 +66,23 @@ func loadStore(path string) *store.SecretStore {
 			return nil
 		}
 		var ok bool
-		passwords, ok = store.UnmarshalSecretStore(fileData, passphrase)
+		passwords, ok = store.UnmarshalSecretStore(fileData, passphrase, m)
 		if !ok {
 			return nil
 		}
 		return passwords
 	}
-	return newStore(path, passphrase)
+	return newStore(path, passphrase, m)
 }
 
-func newStore(path string, passphrase []byte) *store.SecretStore {
+func newStore(path string, passphrase []byte, m secret.ScryptMode) *store.SecretStore {
 	defer util.Zero(passphrase)
 	passwords := store.NewSecretStore(passphrase)
 	if passwords == nil {
 		return nil
 	}
 
-	fileData, ok := store.MarshalSecretStore(passwords)
+	fileData, ok := store.MarshalSecretStore(passwords, m)
 	if !ok {
 		return nil
 	}
@@ -91,7 +92,7 @@ func newStore(path string, passphrase []byte) *store.SecretStore {
 		return nil
 	}
 
-	passwords, ok = store.UnmarshalSecretStore(fileData, passphrase)
+	passwords, ok = store.UnmarshalSecretStore(fileData, passphrase, m)
 	if !ok {
 		return nil
 	}
@@ -294,11 +295,17 @@ func main() {
 	doList := flag.Bool("l", false, "list entries")
 	doWrite := flag.Bool("w", false, "write new entry")
 	doVersion := flag.Bool("V", false, "display version and exit")
+	scryptInteractive := flag.Bool("i", false, "use scrypt interactive")
 	flag.Parse()
 
 	if *doVersion {
 		fmt.Println("journal version", util.VersionString())
 		os.Exit(0)
+	}
+
+	scryptMode := secret.ScryptStandard
+	if *scryptInteractive {
+		scryptMode = secret.ScryptInteractive
 	}
 
 	var cfg = &config{
@@ -325,7 +332,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	passwords := loadStore(*storePath)
+	passwords := loadStore(*storePath, scryptMode)
 	if passwords == nil {
 		util.Errorf("Failed to open password store")
 		os.Exit(1)
@@ -340,7 +347,7 @@ func main() {
 
 	if cmd.ShouldWrite {
 		passwords.Timestamp = time.Now().Unix()
-		if !writeStore(passwords, *storePath) {
+		if !writeStore(passwords, *storePath, scryptMode) {
 			util.Errorf("Failed to write store!")
 			os.Exit(1)
 		}
