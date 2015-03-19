@@ -20,7 +20,7 @@ import (
 type command struct {
 	ShouldWrite  bool
 	RequiredArgc int
-	Run          func(*store.SecretStore, *config, secret.ScryptParams) error
+	Run          func(*store.SecretStore, *config, secret.ScryptMode) error
 	Args         []string
 }
 
@@ -41,8 +41,8 @@ type config struct {
 	WithMeta  bool
 }
 
-func writeStore(ps *store.SecretStore, path string, p secret.ScryptParams) bool {
-	fileData, ok := store.MarshalSecretStore(ps, p)
+func writeStore(ps *store.SecretStore, path string, m secret.ScryptMode) bool {
+	fileData, ok := store.MarshalSecretStore(ps, m)
 	if !ok {
 		return false
 	}
@@ -55,7 +55,7 @@ func writeStore(ps *store.SecretStore, path string, p secret.ScryptParams) bool 
 	return true
 }
 
-func loadStore(path string, p secret.ScryptParams) *store.SecretStore {
+func loadStore(path string, m secret.ScryptMode) *store.SecretStore {
 	passphrase, err := util.PassPrompt("Secrets passphrase> ")
 	if err != nil {
 		util.Errorf("Failed to read passphrase: %v", err)
@@ -71,7 +71,7 @@ func loadStore(path string, p secret.ScryptParams) *store.SecretStore {
 			return nil
 		}
 		var ok bool
-		passwords, ok = store.UnmarshalSecretStore(fileData, passphrase, p)
+		passwords, ok = store.UnmarshalSecretStore(fileData, passphrase, m)
 		if !ok {
 			return nil
 		}
@@ -81,7 +81,7 @@ func loadStore(path string, p secret.ScryptParams) *store.SecretStore {
 	return nil
 }
 
-func initStore(path string, p secret.ScryptParams) error {
+func initStore(path string, m secret.ScryptMode) error {
 	passphrase, err := util.PassPrompt("Secrets passphrase> ")
 	if err != nil {
 		util.Errorf("Failed to read passphrase: %v", err)
@@ -94,7 +94,7 @@ func initStore(path string, p secret.ScryptParams) error {
 	}
 
 	fmt.Println("creating store...")
-	fileData, ok := store.MarshalSecretStore(passwords, p)
+	fileData, ok := store.MarshalSecretStore(passwords, m)
 	if !ok {
 		return fmt.Errorf("failed to marshal store")
 	}
@@ -104,7 +104,7 @@ func initStore(path string, p secret.ScryptParams) error {
 		return err
 	}
 
-	passwords, ok = store.UnmarshalSecretStore(fileData, passphrase, p)
+	passwords, ok = store.UnmarshalSecretStore(fileData, passphrase, m)
 	if !ok {
 		err = fmt.Errorf("failed to unmarshal store")
 	}
@@ -113,7 +113,7 @@ func initStore(path string, p secret.ScryptParams) error {
 
 const timeFormat = "2006-01-2 15:04 MST"
 
-func showSecret(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
+func showSecret(ps *store.SecretStore, cfg *config, m secret.ScryptMode) error {
 	label := cfg.Args[0]
 	if !ps.Has(label) {
 		return errors.New("entry not found")
@@ -136,12 +136,12 @@ func showSecret(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error
 	return nil
 }
 
-func addMeta(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
+func addMeta(ps *store.SecretStore, cfg *config, m secret.ScryptMode) error {
 	label := cfg.Args[0]
 	if !ps.Has(label) {
 		tempConfig := *cfg
 		tempConfig.WithMeta = false
-		err := addSecret(ps, &tempConfig, p)
+		err := addSecret(ps, &tempConfig, m)
 		if err != nil {
 			return err
 		}
@@ -175,9 +175,9 @@ func addMeta(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
 	return nil
 }
 
-func addSecret(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
+func addSecret(ps *store.SecretStore, cfg *config, m secret.ScryptMode) error {
 	if cfg.WithMeta {
-		return addMeta(ps, cfg, p)
+		return addMeta(ps, cfg, m)
 	}
 	label := cfg.Args[0]
 
@@ -204,7 +204,7 @@ func addSecret(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error 
 	return nil
 }
 
-func list(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
+func list(ps *store.SecretStore, cfg *config, m secret.ScryptMode) error {
 	if len(ps.Store) == 0 {
 		fmt.Printf("no passwords")
 		return nil
@@ -227,7 +227,7 @@ func list(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
 	return nil
 }
 
-func chpass(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
+func chpass(ps *store.SecretStore, cfg *config, m secret.ScryptMode) error {
 	password, err := readpass.PasswordPromptBytes("New password: ")
 	if err != nil {
 		return err
@@ -273,7 +273,7 @@ func removeMeta(ps *store.SecretStore, cfg *config) error {
 	return nil
 }
 
-func remove(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
+func remove(ps *store.SecretStore, cfg *config, m secret.ScryptMode) error {
 	if cfg.WithMeta {
 		return removeMeta(ps, cfg)
 	}
@@ -288,7 +288,7 @@ func remove(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
 	return nil
 }
 
-func multi(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
+func multi(ps *store.SecretStore, cfg *config, m secret.ScryptMode) error {
 	fmt.Println("Use an empty name to indicate that you are done.")
 	for {
 		name, err := util.ReadLine("Name: ")
@@ -327,7 +327,7 @@ func multi(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
 	return nil
 }
 
-func merge(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
+func merge(ps *store.SecretStore, cfg *config, m secret.ScryptMode) error {
 	otherPath := cfg.Args[0]
 	passphrase, err := util.PassPrompt("Passphrase for other store> ")
 	if err != nil {
@@ -339,7 +339,7 @@ func merge(ps *store.SecretStore, cfg *config, p secret.ScryptParams) error {
 		return err
 	}
 
-	otherStore, ok := store.UnmarshalSecretStore(otherData, passphrase, p)
+	otherStore, ok := store.UnmarshalSecretStore(otherData, passphrase, m)
 	if !ok {
 		return errors.New("failed to open other password store")
 	}
@@ -387,20 +387,6 @@ func importStore(storePath, inPath string) error {
 	return util.WriteFile(p.Bytes, storePath)
 }
 
-func parseScryptParams(strength int) (secret.ScryptParams, error) {
-	switch {
-	case strength == 1:
-		return secret.ScryptParams{16384, 8, 1}, nil
-	case strength == 2:
-		return secret.ScryptParams{65536, 8, 1}, nil
-	case strength == 3:
-		return secret.ScryptParams{262144, 8, 1}, nil
-	case strength == 4:
-		return secret.ScryptParams{1048576, 8, 2}, nil
-	}
-	return secret.ScryptParams{1048576, 8, 2}, fmt.Errorf("Invalid or missing strength")
-}
-
 func main() {
 	baseFile := filepath.Join(os.Getenv("HOME"), ".secrets.db")
 	doInit := flag.Bool("init", false, "initialize a new store")
@@ -417,7 +403,7 @@ func main() {
 	clipExport := flag.Bool("x", false, "dump secrets for clipboard")
 	overWrite := flag.Bool("w", false, "overwrite existing secrets")
 	doVersion := flag.Bool("V", false, "display version and exit")
-	scryptStrength := flag.Int("t", 4, "scrypt time/strength (1, 2, 3, 4)")
+	scryptInteractive := flag.Bool("i", false, "use scrypt interactive")
 	flag.Parse()
 
 	if *doVersion {
@@ -425,10 +411,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	scryptParams, err := parseScryptParams(*scryptStrength)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+	scryptMode := secret.ScryptStandard
+	if *scryptInteractive {
+		scryptMode = secret.ScryptInteractive
 	}
 
 	var cfg = &config{
@@ -442,7 +427,7 @@ func main() {
 	switch {
 	case *doInit:
 		cmd = commandSet["init"]
-		err = initStore(*storePath, scryptParams)
+		err := initStore(*storePath, scryptMode)
 		if err != nil {
 			util.Errorf("Failed: %v", err)
 			os.Exit(1)
@@ -491,14 +476,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	passwords := loadStore(*storePath, scryptParams)
+	passwords := loadStore(*storePath, scryptMode)
 	if passwords == nil {
 		util.Errorf("Failed to open password store")
 		os.Exit(1)
 	}
 	defer passwords.Zero()
 
-	err = cmd.Run(passwords, cfg, scryptParams)
+	err := cmd.Run(passwords, cfg, scryptMode)
 	if err != nil {
 		util.Errorf("Failed: %v", err)
 		os.Exit(1)
@@ -506,7 +491,7 @@ func main() {
 
 	if cmd.ShouldWrite {
 		passwords.Timestamp = time.Now().Unix()
-		if !writeStore(passwords, *storePath, scryptParams) {
+		if !writeStore(passwords, *storePath, scryptMode) {
 			util.Errorf("Failed to write store!")
 			os.Exit(1)
 		}
