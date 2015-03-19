@@ -2,7 +2,7 @@
 ### a command line secrets manager
 
 This a personal secrets manager, written for me, that operates on the
-command line. It wrote it primarily to store and retrieve passwords
+command line. I wrote it primarily to store and retrieve passwords
 and optional metadata, but it can be used to store almost any kind of
 secret. It is also a general utility for interacting with secret
 stores built using the
@@ -17,6 +17,25 @@ store. It's not meant for using on a phone (I avoid using mine as much
 as possible).
 
 ## Usage (using a password manager example):
+
+To create a new password store *(defaults to `~/.secrets.db`)*:
+
+```
+secrets -init
+```
+
+To create a new password store specific file:
+```
+secrets -init -f ~/.mysecrets
+```
+
+To create a new password store with interactive scrypt work factors:
+```
+secrets -init -i
+```
+*If you specify interactive you'll need to specify it
+for all other crud operations to the store.*
+**This defaults to standard mode**
 
 To add a new password (password set):
 

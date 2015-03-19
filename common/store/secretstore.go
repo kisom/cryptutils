@@ -186,7 +186,7 @@ func (s *SecretStore) Merge(other *SecretStore) []string {
 
 // MarshalSecretStore serialises and encrypts the data store to a byte
 // slice suitable for writing to disk.
-func MarshalSecretStore(s *SecretStore) ([]byte, bool) {
+func MarshalSecretStore(s *SecretStore, m secret.ScryptMode) ([]byte, bool) {
 	if !s.Valid() {
 		return nil, false
 	}
@@ -202,7 +202,7 @@ func MarshalSecretStore(s *SecretStore) ([]byte, bool) {
 		return nil, false
 	}
 
-	key := secret.DeriveKey(s.passphrase, salt)
+	key := secret.DeriveKeyStrength(s.passphrase, salt, m)
 	if key == nil {
 		return nil, false
 	}
@@ -220,14 +220,14 @@ func MarshalSecretStore(s *SecretStore) ([]byte, bool) {
 
 // UnmarshalSecretStore decrypts and parses the secret store contained
 // in the input byte slice.
-func UnmarshalSecretStore(in, passphrase []byte) (*SecretStore, bool) {
+func UnmarshalSecretStore(in, passphrase []byte, m secret.ScryptMode) (*SecretStore, bool) {
 	if len(in) < saltSize {
 		return nil, false
 	}
 
 	salt := in[:saltSize]
 	enc := in[saltSize:]
-	key := secret.DeriveKey(passphrase, salt)
+	key := secret.DeriveKeyStrength(passphrase, salt, m)
 	if key == nil {
 		return nil, false
 	}

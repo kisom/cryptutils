@@ -14,12 +14,42 @@ import (
 	"github.com/kisom/cryptutils/common/util"
 )
 
+const (
+	// ScryptStandard mode uses N=2^20, r=8, p=2
+	ScryptStandard ScryptMode = iota
+	// ScryptInteractive mode uses N=2^14, r=8, p=1
+	ScryptInteractive
+)
+
 // KeySize contains the size (in bytes) of a NaCl secretbox key.
 const (
 	KeySize   = 32
 	SaltSize  = 32
 	nonceSize = 24
 )
+
+// ScryptMode represents the work factor to be used for passphrases.
+type ScryptMode int
+
+type scryptParams struct {
+	N int
+	r int
+	p int
+}
+
+// Scrypt work factors
+var (
+	scryptStandard    = scryptParams{1048576, 8, 2}
+	scryptInteractive = scryptParams{16384, 8, 1}
+)
+
+// scryptMode returns the scrypt params for the given mode.
+func scryptMode(m ScryptMode) scryptParams {
+	if m == ScryptInteractive {
+		return scryptInteractive
+	}
+	return scryptStandard
+}
 
 // GenerateKey returns a randomly generated secretbox key. Typically,
 // you should use DeriveKey to get a key from a passphrase
@@ -36,16 +66,11 @@ func GenerateKey() *[KeySize]byte {
 	return &key
 }
 
-var scryptParams = struct {
-	N int
-	r int
-	p int
-}{1048576, 8, 2}
-
-// DeriveKey applies Scrypt with very strong parameters to generate an
-// encryption key from a passphrase and salt.
-func DeriveKey(passphrase []byte, salt []byte) *[KeySize]byte {
-	rawKey, err := scrypt.Key(passphrase, salt, scryptParams.N, scryptParams.r, scryptParams.p, KeySize)
+// DeriveKeyStrength applies Scrypt using the given work parameters
+// to generate an encryption key from a passphrase and salt.
+func DeriveKeyStrength(passphrase []byte, salt []byte, m ScryptMode) *[KeySize]byte {
+	s := scryptMode(m)
+	rawKey, err := scrypt.Key(passphrase, salt, s.N, s.r, s.p, KeySize)
 	if err != nil {
 		return nil
 	}
@@ -54,6 +79,12 @@ func DeriveKey(passphrase []byte, salt []byte) *[KeySize]byte {
 	copy(key[:], rawKey)
 	util.Zero(rawKey)
 	return &key
+}
+
+// DeriveKey applies Scrypt with very strong parameters to generate an
+// encryption key from a passphrase and salt.
+func DeriveKey(passphrase []byte, salt []byte) *[KeySize]byte {
+	return DeriveKeyStrength(passphrase, salt, ScryptStandard)
 }
 
 // Encrypt generates a random nonce and encrypts the input using
