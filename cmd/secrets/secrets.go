@@ -393,7 +393,7 @@ func main() {
 	doMerge := flag.Bool("merge", false, "merge another store into this store")
 	doExport := flag.Bool("export", false, "export store to PEM")
 	doImport := flag.Bool("import", false, "import store from PEM")
-	doMulti := flag.Bool("multi", false, "enter multiple passwods")
+	doMulti := flag.Bool("multi", false, "enter multiple passwords")
 	doChPass := flag.Bool("c", false, "change the store's password")
 	storePath := flag.String("f", baseFile, "path to password store")
 	doList := flag.Bool("l", false, "list accounts")
