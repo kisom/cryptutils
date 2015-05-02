@@ -35,12 +35,19 @@ func TestDeriveKey(t *testing.T) {
 		t.Fatal("secret: failed to derive key")
 	}
 
-	n := scryptParams.N
-	scryptParams.N = 0
-	if k := DeriveKey(password, salt); k != nil {
-		t.Fatal("secret: should fail to derive key with invalid Scrypt params")
+	if k := DeriveKey(password, salt); k == nil {
+		t.Fatal("secret: key derivation failure")
 	}
-	scryptParams.N = n
+
+	if k := DeriveKeyStrength(password, salt, ScryptInteractive); k == nil {
+		t.Fatal("secret: key derivation failure")
+	}
+
+	scryptMode[-1] = scryptParams{0, 0, 0}
+	if k := DeriveKeyStrength(password, salt, -1); k != nil {
+		t.Fatal("secret: should fail to derive key with invalid Scrypt parameters")
+	}
+	delete(scryptMode, -1)
 }
 
 func TestEncrypt(t *testing.T) {

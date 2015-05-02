@@ -43,12 +43,9 @@ var (
 	scryptInteractive = scryptParams{16384, 8, 1}
 )
 
-// scryptMode returns the scrypt params for the given mode.
-func scryptMode(m ScryptMode) scryptParams {
-	if m == ScryptInteractive {
-		return scryptInteractive
-	}
-	return scryptStandard
+var scryptMode = map[ScryptMode]scryptParams{
+	ScryptStandard: scryptStandard,
+	ScryptInteractive: scryptInteractive,
 }
 
 // GenerateKey returns a randomly generated secretbox key. Typically,
@@ -69,7 +66,7 @@ func GenerateKey() *[KeySize]byte {
 // DeriveKeyStrength applies Scrypt using the given work parameters
 // to generate an encryption key from a passphrase and salt.
 func DeriveKeyStrength(passphrase []byte, salt []byte, m ScryptMode) *[KeySize]byte {
-	s := scryptMode(m)
+	s := scryptMode[m]
 	rawKey, err := scrypt.Key(passphrase, salt, s.N, s.r, s.p, KeySize)
 	if err != nil {
 		return nil
