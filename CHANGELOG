@@ -1,3 +1,14 @@
+1.1.0 :: kyle :: 2015-05-01
+===========================
+
+* Support both of the Scrypt security levels. The interactive level
+  is faster but provides a lower level of security; this isn't the
+  default and must be explicitly chosen.
+
+* The common crypto, authentication, utility, and TLV packages are all
+  at 100% coverage. Future work will attempt to bring store to a similar
+  level of testing.
+
 1.0.4 :: kyle :: 2014-01-03
 ===========================
 Fix version display from 1-0-3 to 1.0.3.
