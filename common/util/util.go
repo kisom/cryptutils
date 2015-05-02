@@ -52,8 +52,12 @@ func PRNG() io.Reader {
 }
 
 // SetPRNG is used to change the PRNG. This should only be used in
-// testing to validate PRNG failures.
+// testing to validate PRNG failures. If nil is passed as the reader,
+// crypto/rand.Reader will be used.
 func SetPRNG(r io.Reader) {
+	if r == nil {
+		r = rand.Reader
+	}
 	prng = r
 }
 

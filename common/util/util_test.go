@@ -73,6 +73,13 @@ func TestZero(t *testing.T) {
 	}
 }
 
+func TestSetNilPRNG(t *testing.T) {
+	SetPRNG(nil)
+	if PRNG() == nil {
+		t.Fatal("util: prng should not be nil")
+	}
+}
+
 func TestPRNGFails(t *testing.T) {
 	SetPRNG(&bytes.Buffer{})
 	r := RandBytes(16)
@@ -204,4 +211,13 @@ func TestReadLineFails(t *testing.T) {
 	}
 
 	fmt.Println("")
+}
+
+func TestNonce(t *testing.T) {
+	SetPRNG(nil)
+
+	n := NewNonce()
+	if n == nil {
+		t.Fatal("util: failed to generate nonce")
+	}
 }
