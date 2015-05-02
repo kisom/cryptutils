@@ -87,6 +87,11 @@ func initStore(path string, m secret.ScryptMode) error {
 		util.Errorf("Failed to read passphrase: %v", err)
 		return err
 	}
+
+	if len(passphrase) == 0 {
+		return fmt.Errorf("No passphrase provided.")
+	}
+
 	defer util.Zero(passphrase)
 	passwords := store.NewSecretStore(passphrase)
 	if passwords == nil {
