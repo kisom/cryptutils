@@ -232,7 +232,7 @@ func TestDecodeFails(t *testing.T) {
 
 	var u16 uint16
 	if err := dec.Decode(&u16); err != nil {
-		t.Fatal("%v", err)
+		t.Fatalf("%v", err)
 	}
 
 	if err := dec.Decode(&u16); err == nil {

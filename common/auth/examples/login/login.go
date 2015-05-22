@@ -143,7 +143,7 @@ func register() {
 
 		rfn, ok := rfns[authType]
 		if !ok {
-			fmt.Println(authType, "isn't a supported authentication type.\n")
+			fmt.Println(authType, "isn't a supported authentication type.")
 			continue
 		}
 
