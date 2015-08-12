@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"code.google.com/p/go.crypto/nacl/box"
+	"golang.org/x/crypto/nacl/box"
 	"github.com/agl/ed25519"
 	"github.com/kisom/cryptutils/common/secret"
 	"github.com/kisom/cryptutils/common/tlv"

@@ -1,6 +1,6 @@
 package auth
 
-import "code.google.com/p/go.crypto/bcrypt"
+import "golang.org/x/crypto/bcrypt"
 
 const defaultBcryptCost = 14
 

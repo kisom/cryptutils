@@ -59,8 +59,9 @@ front end.
 
 ### Dependencies
 
-* code.google.com/p/go.crypto
+* golang.org/x/crypto
 * github.com/agl/ed25519
+* github.com/conformal/yubikey
 * github.com/gokyle/twofactor
 * github.com/gokyle/readpass 
 
