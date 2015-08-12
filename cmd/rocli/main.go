@@ -3,14 +3,17 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/cloudflare/redoctober/client"
 	"github.com/cloudflare/redoctober/core"
+	"github.com/cloudflare/redoctober/keycache"
 	"github.com/kisom/cryptutils/common/secret"
 	"github.com/kisom/cryptutils/common/store"
 	"github.com/kisom/cryptutils/common/util"
@@ -84,12 +87,90 @@ func delegate(ro *roData) (err error) {
 	if err != nil {
 		return
 	}
-	fmt.Println(resp)
+	fmt.Println(resp.Status)
 	return
 }
 
+func strUser(n string, u keycache.ActiveUser) string {
+	uType := "U"
+	if u.Admin {
+		uType = "A"
+	}
+	s := fmt.Sprintf("%s (%s)", n, uType)
+	return s
+}
+
+func unwrap(attrs map[string]string) string {
+	var attrList = make([]string, 0, len(attrs))
+	for k, v := range attrs {
+		attrList = append(attrList, k+"="+v)
+	}
+
+	sort.Strings(attrList)
+	return strings.Join(attrList, "; ")
+}
+
+func strDelegation(u keycache.ActiveUser) string {
+	var attrs = map[string]string{}
+	attrs["uses"] = fmt.Sprintf("%d", u.Usage.Uses)
+
+	if len(u.Usage.Labels) > 0 {
+		attrs["labels"] = strings.Join(u.Usage.Labels, ",")
+	}
+
+	if len(u.Usage.Users) > 0 {
+		attrs["users"] = strings.Join(u.Usage.Users, ",")
+	}
+
+	attrs["expires"] = u.Usage.Expiry.Format("2006-01-02 15:04:05 MST")
+	return unwrap(attrs)
+}
+
+func summary(ro *roData) (err error) {
+	srv, err := client.NewRemoteServer(ro.Server, ro.CAFile)
+	if err != nil {
+		return
+	}
+
+	request := core.SummaryRequest{
+		Name:     ro.User,
+		Password: ro.Password,
+	}
+
+	resp, err := srv.Summary(request)
+	if err != nil {
+		return
+	}
+
+	fmt.Println(resp.Status)
+	fmt.Println("Active delegations")
+	for n, u := range resp.Live {
+		fmt.Printf("\t%s\n", strUser(n, u))
+		fmt.Printf("\t\t%s\n", strDelegation(u))
+	}
+
+	names := make([]string, 0, len(resp.All))
+	for n := range resp.All {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+
+	fmt.Println("All accounts")
+	for i := range names {
+		n := names[i]
+		u := resp.All[n]
+		uType := "U"
+		if u.Admin {
+			uType = "A"
+		}
+		fmt.Printf("\t%s (%s) // %s\n", n, uType, u.Type)
+	}
+
+	return nil
+}
+
 func usage() {
-	fmt.Fprintf(os.Stderr, `usage: delegate <label>
+	fmt.Fprintf(os.Stderr, `usage: delegate <label> <command>
 
 	where label is the secret store label.
 `)
@@ -116,7 +197,7 @@ func main() {
 	userName := flag.String("u", "", "username for red october")
 	flag.Parse()
 
-	if flag.NArg() == 0 {
+	if flag.NArg() != 2 {
 		usage()
 		os.Exit(1)
 	}
@@ -164,9 +245,18 @@ func main() {
 	ro.Count = *count
 	ro.Dur = *forTime
 
-	err := delegate(&ro)
+	var err error
+	cmd := flag.Arg(1)
+	switch cmd {
+	case "delegate":
+		err = delegate(&ro)
+	case "summary":
+		err = summary(&ro)
+	default:
+		err = errors.New("rocli: invalid command " + cmd)
+	}
 	if err != nil {
-		util.Errorf("Delegation failed: %v", err)
+		util.Errorf("%v", err)
 		os.Exit(1)
 	}
 }
