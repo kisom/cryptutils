@@ -16,7 +16,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/kisom/cryptutils/rsc/qr"
+	"github.com/kisom/cryptutils/vendor/rsc/qr"
 
 	"github.com/kisom/cryptutils/common/tlv"
 	"github.com/kisom/cryptutils/common/util"
