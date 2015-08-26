@@ -62,7 +62,6 @@ front end.
 * golang.org/x/crypto
 * github.com/agl/ed25519
 * github.com/conformal/yubikey
-* github.com/gokyle/twofactor
 * github.com/gokyle/readpass 
 
 ### License
