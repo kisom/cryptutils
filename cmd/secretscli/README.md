@@ -49,3 +49,6 @@ There's a help system too; enter the "help" command to see all the
 supported commands.
 
 The UI is admittedly weak for other people, but this is what I wanted.
+
+The tool will timeout after an adjustable period of time (5 minutes),
+relocking the secret store and exiting.
