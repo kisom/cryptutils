@@ -154,6 +154,12 @@ func main() {
 	scryptInteractive := flag.Bool("i", false, "use scrypt interactive")
 	flag.Parse()
 
+	if defaultTimeout > maxTimeout {
+		fmt.Fprintf(os.Stderr, "[!] timeout is too long (max is %s).\n",
+			maxTimeout)
+		os.Exit(1)
+	}
+
 	session.Scrypt = secret.ScryptStandard
 	if *scryptInteractive {
 		session.Scrypt = secret.ScryptInteractive
