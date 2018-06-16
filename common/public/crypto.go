@@ -8,11 +8,11 @@ import (
 	"errors"
 	"fmt"
 
-	"golang.org/x/crypto/nacl/box"
 	"github.com/agl/ed25519"
 	"github.com/kisom/cryptutils/common/secret"
 	"github.com/kisom/cryptutils/common/tlv"
 	"github.com/kisom/cryptutils/common/util"
+	"golang.org/x/crypto/nacl/box"
 )
 
 const saltSize = 32
