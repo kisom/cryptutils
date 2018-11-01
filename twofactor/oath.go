@@ -1,12 +1,12 @@
 package twofactor
 
 import (
-	"github.com/kisom/cryptutils/vendor/rsc/qr"
 	"crypto"
 	"crypto/hmac"
 	"encoding/base32"
 	"encoding/binary"
 	"fmt"
+	"github.com/kisom/cryptutils/vendor/rsc/qr"
 	"hash"
 	"net/url"
 )

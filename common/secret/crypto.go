@@ -9,9 +9,9 @@ import (
 	"errors"
 	"io/ioutil"
 
+	"github.com/kisom/cryptutils/common/util"
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/crypto/scrypt"
-	"github.com/kisom/cryptutils/common/util"
 )
 
 const (
@@ -44,7 +44,7 @@ var (
 )
 
 var scryptMode = map[ScryptMode]scryptParams{
-	ScryptStandard: scryptStandard,
+	ScryptStandard:    scryptStandard,
 	ScryptInteractive: scryptInteractive,
 }
 

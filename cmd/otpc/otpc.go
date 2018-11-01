@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kisom/cryptutils/twofactor"
 	"github.com/kisom/cryptutils/common/secret"
 	"github.com/kisom/cryptutils/common/store"
 	"github.com/kisom/cryptutils/common/util"
+	"github.com/kisom/cryptutils/twofactor"
 )
 
 type command struct {
