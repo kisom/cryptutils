@@ -6,9 +6,10 @@ import (
 	"encoding/base32"
 	"encoding/binary"
 	"fmt"
-	"github.com/kisom/cryptutils/vendor/rsc/qr"
 	"hash"
 	"net/url"
+
+	"github.com/rsc/qr"
 )
 
 const defaultSize = 6
