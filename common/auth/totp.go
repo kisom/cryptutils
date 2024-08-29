@@ -18,7 +18,7 @@ import (
 
 	"github.com/kisom/cryptutils/common/tlv"
 	"github.com/kisom/cryptutils/common/util"
-	"github.com/rsc/qr"
+	"rsc.io/qr"
 )
 
 // TypeTOTP is a TOTP token.

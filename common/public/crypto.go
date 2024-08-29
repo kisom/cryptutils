@@ -4,11 +4,11 @@ package public
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"encoding/pem"
 	"errors"
 	"fmt"
 
-	"github.com/agl/ed25519"
 	"github.com/kisom/cryptutils/common/secret"
 	"github.com/kisom/cryptutils/common/tlv"
 	"github.com/kisom/cryptutils/common/util"
@@ -227,10 +227,12 @@ func GenerateKey() (*PrivateKey, error) {
 		return nil, err
 	}
 
-	priv.V, priv.S, err = ed25519.GenerateKey(prng)
+	v, s, err := ed25519.GenerateKey(prng)
 	if err != nil {
 		return nil, err
 	}
+	copy(priv.V[:], v)
+	copy(priv.S[:], s)
 
 	return &priv, nil
 }
@@ -312,7 +314,7 @@ func Sign(priv *PrivateKey, message []byte) ([]byte, bool) {
 	if !priv.Valid() {
 		return nil, false
 	}
-	sig := ed25519.Sign(priv.S, message)
+	sig := ed25519.Sign(priv.S[:], message)
 	return sig[:], true
 }
 
@@ -329,7 +331,7 @@ func Verify(pub *PublicKey, message []byte, sig []byte) bool {
 
 	var signature [ed25519.SignatureSize]byte
 	copy(signature[:], sig)
-	return ed25519.Verify(pub.V, message, &signature)
+	return ed25519.Verify(pub.V[:], message, signature[:])
 }
 
 // EncryptAndSign signs the message with the private key, then

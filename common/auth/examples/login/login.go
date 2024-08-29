@@ -197,8 +197,7 @@ Usage:
 
 	register is used to add users to the "system".
 
-	run checks logins against the users in the "system".
-`)
+	run checks logins against the users in the "system".`)
 }
 
 func dieIfError(err error) {
